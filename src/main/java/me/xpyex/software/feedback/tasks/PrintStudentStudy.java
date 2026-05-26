@@ -44,7 +44,8 @@ public class PrintStudentStudy {
     public static final int DEFAULT_ARTICLES = 2;
     private static final Logger log = LoggerFactory.getLogger(PrintStudentStudy.class.getSimpleName());
     // 需要人工核查的学生名单（学生姓名 -> 原因）
-    private static final Map<String, String> studentsNeedManualCheck = new HashMap<>();
+    private static final Map<String, String> studentsNeedManualCheck = new HashMap<>();// 每份最多 2 篇
+    private static final int ARTICLES_PER_COPY = 2;
 
     // GUI选中的学生列表
     private static List<StudentInfo> selectedStudents = null;
@@ -169,15 +170,13 @@ public class PrintStudentStudy {
 
         log.info(">>> 开始处理 {} 个学生...", totalStudents);
 
-        for (var entry : studentMap.entrySet()) {
-            int studentId = entry.getKey();
-            StudentInfo student = entry.getValue();
+        for (StudentInfo student : studentMap.values()) {
             processedCount++;
 
             LogUtil.line("-", 40);
             log.info("[{}/{}] 正在处理学生：{} [ID:{}]",
                 processedCount, totalStudents,
-                student.getRealName(), studentId);
+                student.getRealName(), student.getStudentId());
 
             try {
                 // 步骤 1: 检查词汇量
@@ -358,13 +357,20 @@ public class PrintStudentStudy {
         log.info("  → 准备打印学案...");
         log.info("  学生：{}, 打印篇数：{}", studentName, totalArticles);
 
-        int articlesPerCopy = 2;  // 每份最多 2 篇
+        String originClassName = student.getClassName();
+        AYDResponse response1 = AYDResponse.of(AiyouduUtil.postUrlWithToken(StudentInfo.updateUrl, GsonUtil.toJsonStr(student.setClassName(student.getGroup()), false)));
+        if (response1.isSuccess()) {
+            log.info("  √ 临时修改班级请求成功");
+        } else {
+            log.warn("  ! 更新班级失败：{}", response1.getMessage());
+        }
+        // 临时修改学生所属班级为组名，以便在学案上突出，打印后恢复
 
         // 计算需要打印多少份
-        int fullCopies = totalArticles / articlesPerCopy;  // 完整的份数（每份 2 篇）
-        int remainder = totalArticles % articlesPerCopy;   // 剩余的篇数（0 或 1）
+        int fullCopies = totalArticles / ARTICLES_PER_COPY;  // 完整的份数（每份 2 篇）
+        int remainder = totalArticles % ARTICLES_PER_COPY;   // 剩余的篇数（0 或 1）
 
-        log.info("  总篇数：{}, 每份最多 {} 篇", totalArticles, articlesPerCopy);
+        log.info("  总篇数：{}, 每份最多 {} 篇", totalArticles, ARTICLES_PER_COPY);
         log.info("  完整份数：{} (每份 2 篇)", fullCopies);
         if (remainder > 0) {
             log.info("  额外份数：1 ({} 篇)", remainder);
@@ -422,6 +428,12 @@ public class PrintStudentStudy {
 
         log.info("  √ 打印完成，共合并 {} 份，总计 {} 篇",
             fullCopies + (remainder > 0 ? 1 : 0), totalArticles);
+        AYDResponse response2 = AYDResponse.of(AiyouduUtil.postUrlWithToken(StudentInfo.updateUrl, GsonUtil.toJsonStr(student.setClassName(originClassName), false)));
+        if (response2.isSuccess()) {
+            log.info("  √ 已恢复原班级");
+        } else {
+            log.warn("  ! 恢复班级失败");
+        }
     }
 
     /**
