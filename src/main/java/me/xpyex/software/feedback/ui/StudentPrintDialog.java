@@ -4,7 +4,6 @@ import com.google.gson.JsonObject;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,9 +32,25 @@ public class StudentPrintDialog extends BaseStudentSelectionDialog {
         initBaseUI();
     }
 
+    /**
+     * 显示学生打印对话框
+     */
+    public static void showDialog(JFrame parent, PrintCallback callback) {
+        // 加载打印配置
+        PrintStudentStudy.loadPrintConfig();
+
+        StudentPrintDialog dialog = new StudentPrintDialog(parent, callback);
+        dialog.setVisible(true);
+    }
+
     @Override
     protected String getHintText() {
         return "请选择要打印学案的学生，并设置打印篇数 (修改后自动保存)";
+    }
+
+    @Override
+    protected String formatStudentInfo(StudentInfo student) {
+        return String.format("%-10s [%s]", student.getRealName(), student.getGroup());
     }
 
     @Override
@@ -119,11 +134,6 @@ public class StudentPrintDialog extends BaseStudentSelectionDialog {
     }
 
     @Override
-    protected String formatStudentInfo(StudentInfo student) {
-        return String.format("%-10s [%s]", student.getRealName(), student.getGroup());
-    }
-
-    @Override
     protected void onOK(List<StudentInfo> selectedStudents) {
         // 由 createButtonPanel 中的自定义逻辑处理
     }
@@ -147,17 +157,6 @@ public class StudentPrintDialog extends BaseStudentSelectionDialog {
             JOptionPane.showMessageDialog(this, "请输入有效的数字！", "错误", JOptionPane.ERROR_MESSAGE);
             field.setText("0");
         }
-    }
-
-    /**
-     * 显示学生打印对话框
-     */
-    public static void showDialog(JFrame parent, PrintCallback callback) {
-        // 加载打印配置
-        PrintStudentStudy.loadPrintConfig();
-        
-        StudentPrintDialog dialog = new StudentPrintDialog(parent, callback);
-        dialog.setVisible(true);
     }
 
     public interface PrintCallback {

@@ -20,6 +20,7 @@ public class Main {
         // 检查启动参数
         for (String arg : args) {
             if ("gui=true".equalsIgnoreCase(arg)) {
+                System.out.println("检测到有参数，自动启动图形化界面");
                 MainWindow.showMainWindow();
             } else if ("debug=true".equalsIgnoreCase(arg)) {
                 debug = true;

@@ -18,14 +18,6 @@ public class SimpleStudentSelectionDialog extends BaseStudentSelectionDialog {
         initBaseUI();
     }
 
-    @Override
-    protected void onOK(List<StudentInfo> selectedStudents) {
-        dispose();
-        if (callback != null) {
-            callback.accept(selectedStudents);
-        }
-    }
-
     /**
      * 显示学生选择对话框
      *
@@ -36,5 +28,13 @@ public class SimpleStudentSelectionDialog extends BaseStudentSelectionDialog {
     public static void showDialog(JFrame parent, String title, Consumer<List<StudentInfo>> callback) {
         SimpleStudentSelectionDialog dialog = new SimpleStudentSelectionDialog(parent, title, callback);
         dialog.setVisible(true);
+    }
+
+    @Override
+    protected void onOK(List<StudentInfo> selectedStudents) {
+        dispose();
+        if (callback != null) {
+            callback.accept(selectedStudents);
+        }
     }
 }

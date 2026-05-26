@@ -12,8 +12,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JDialog;
@@ -26,10 +24,6 @@ import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledDocument;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.tasks.StudentReader;
 
@@ -42,7 +36,7 @@ public abstract class BaseStudentSelectionDialog extends JDialog {
     protected final Map<JCheckBox, Integer> checkBoxToStudentId = new HashMap<>();
     protected final Map<JCheckBox, JLabel> checkBoxToInfoLabel = new HashMap<>(); // 用于高亮
     protected JTextField searchField; // 搜索框
-    
+
     /**
      * 构造函数
      *
@@ -64,24 +58,24 @@ public abstract class BaseStudentSelectionDialog extends JDialog {
 
         // 顶部面板：提示 + 搜索框
         JPanel topPanel = new JPanel(new BorderLayout(5, 5));
-        
+
         JLabel hintLabel = new JLabel(getHintText());
         hintLabel.setFont(new Font("微软雅黑", Font.BOLD, 13));
         topPanel.add(hintLabel, BorderLayout.WEST);
-        
+
         // 搜索框
         searchField = new JTextField(15);
         searchField.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         searchField.setToolTipText("输入学生姓名进行搜索");
         topPanel.add(searchField, BorderLayout.EAST);
-        
+
         mainPanel.add(topPanel, BorderLayout.NORTH);
 
         // 中间复选框列表（带滚动）
         JPanel studentPanel = new JPanel(new GridBagLayout());
         JScrollPane scrollPane = new JScrollPane(studentPanel);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        
+
         // 允许子类自定义滚动速度
         customizeScrollPane(scrollPane);
 
@@ -116,10 +110,10 @@ public abstract class BaseStudentSelectionDialog extends JDialog {
             JLabel infoLabel = createHighlightableLabel(studentInfo);
             infoLabel.setFont(new Font("微软雅黑", Font.PLAIN, 12));
             studentPanel.add(infoLabel, gbc);
-            
+
             // 保存引用以便高亮
             checkBoxToInfoLabel.put(checkBox, infoLabel);
-            
+
             // 存储原始文本用于高亮
             infoLabel.putClientProperty("originalText", studentInfo);
             infoLabel.putClientProperty("studentName", student.getRealName());
@@ -137,7 +131,7 @@ public abstract class BaseStudentSelectionDialog extends JDialog {
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         add(mainPanel);
-        
+
         // 添加搜索监听器
         setupSearchListener();
     }
@@ -176,12 +170,12 @@ public abstract class BaseStudentSelectionDialog extends JDialog {
      */
     private void highlightStudents() {
         String searchText = searchField.getText().trim().toLowerCase();
-        
+
         for (Map.Entry<JCheckBox, JLabel> entry : checkBoxToInfoLabel.entrySet()) {
             JLabel label = entry.getValue();
             String originalText = (String) label.getClientProperty("originalText");
             String studentName = (String) label.getClientProperty("studentName");
-            
+
             if (searchText.isEmpty()) {
                 // 无搜索文本，恢复默认样式
                 label.setForeground(Color.BLACK);
@@ -232,12 +226,12 @@ public abstract class BaseStudentSelectionDialog extends JDialog {
     /**
      * 添加额外列的钩子方法（子类可重写）
      *
-     * @param gbc         布局约束
-     * @param row         当前行号
-     * @param student     学生信息
+     * @param gbc          布局约束
+     * @param row          当前行号
+     * @param student      学生信息
      * @param studentPanel 学生面板
      */
-    protected void addExtraColumns(GridBagConstraints gbc, int row, 
+    protected void addExtraColumns(GridBagConstraints gbc, int row,
                                    StudentInfo student, JPanel studentPanel) {
         // 默认空实现，子类可根据需要添加额外列
     }

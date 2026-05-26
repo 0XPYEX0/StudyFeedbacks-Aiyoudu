@@ -11,11 +11,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import me.xpyex.software.feedback.Main;
+import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.packet.in.AYDResponse;
 import me.xpyex.software.feedback.packet.in.DataInfo;
 import me.xpyex.software.feedback.packet.in.FinishedTaskPanel;
 import me.xpyex.software.feedback.packet.in.SinglePanel;
-import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.packet.out.SearchStudents;
 import org.slf4j.Logger;
 

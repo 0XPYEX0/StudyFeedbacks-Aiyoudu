@@ -1,5 +1,6 @@
 package me.xpyex.software.feedback.util;
 
+import java.util.Date;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -15,10 +16,6 @@ import me.xpyex.software.feedback.Main;
  */
 public class TaskExecutor {
     private static final AtomicBoolean isRunning = new AtomicBoolean(false);
-    /**
-     * -- GETTER --
-     * 获取当前任务线程
-     */
     @Getter
     private static Thread currentTaskThread = null;
     // GUI相关（可选）
@@ -148,7 +145,7 @@ public class TaskExecutor {
         if (guiFrame != null) {
             // GUI模式下由MainWindow处理
             SwingUtilities.invokeLater(() -> {
-                String timestamp = new java.text.SimpleDateFormat("HH:mm:ss").format(new java.util.Date());
+                String timestamp = TimeUtil.parseDate(new Date(), "HH:mm:ss");
                 // 这里需要调用MainWindow的log方法，但由于循环依赖，我们直接输出
                 System.out.println("[" + timestamp + "] " + message);
             });
@@ -163,7 +160,7 @@ public class TaskExecutor {
     public static void logError(String message) {
         if (guiFrame != null) {
             SwingUtilities.invokeLater(() -> {
-                String timestamp = new java.text.SimpleDateFormat("HH:mm:ss").format(new java.util.Date());
+                String timestamp = TimeUtil.parseDate(new Date(), "HH:mm:ss");
                 System.err.println("[" + timestamp + "] [错误] " + message);
             });
         } else {

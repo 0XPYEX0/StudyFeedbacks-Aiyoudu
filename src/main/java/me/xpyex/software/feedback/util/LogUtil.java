@@ -25,7 +25,7 @@ public class LogUtil {
                 break;
             }
         }
-        
+
         if (!LOGGER_MAP.containsKey(name)) {
             LOGGER_MAP.put(name, LoggerFactory.getLogger(name));
         }

@@ -3,7 +3,7 @@ package me.xpyex.software.feedback.ui;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -35,9 +35,22 @@ public class StudentProfileDialog extends BaseStudentSelectionDialog {
         initBaseUI();
     }
 
+    /**
+     * 显示学生档案采集对话框
+     */
+    public static void showDialog(JFrame parent, ProfileCallback callback) {
+        StudentProfileDialog dialog = new StudentProfileDialog(parent, callback);
+        dialog.setVisible(true);
+    }
+
     @Override
     protected String getHintText() {
         return "请选择要采集档案的学生，并设置采集日期范围（开始日期 - 结束日期）：";
+    }
+
+    @Override
+    protected String formatStudentInfo(StudentInfo student) {
+        return String.format("%-10s [%s]", student.getRealName(), student.getGroup());
     }
 
     @Override
@@ -55,8 +68,8 @@ public class StudentProfileDialog extends BaseStudentSelectionDialog {
         gbc.fill = GridBagConstraints.NONE;
 
         // 开始日期
-        String lastWeekStart = LocalDate.now().minusWeeks(1).with(java.time.DayOfWeek.MONDAY).format(DATE_FORMATTER);
-        String lastWeekEnd = LocalDate.now().minusWeeks(1).with(java.time.DayOfWeek.SUNDAY).format(DATE_FORMATTER);
+        String lastWeekStart = LocalDate.now().minusWeeks(1).with(DayOfWeek.MONDAY).format(DATE_FORMATTER);
+        String lastWeekEnd = LocalDate.now().minusWeeks(1).with(DayOfWeek.SUNDAY).format(DATE_FORMATTER);
 
         JPanel datePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         JTextField startDateField = new JTextField(lastWeekStart, 10);
@@ -131,11 +144,6 @@ public class StudentProfileDialog extends BaseStudentSelectionDialog {
     }
 
     @Override
-    protected String formatStudentInfo(StudentInfo student) {
-        return String.format("%-10s [%s]", student.getRealName(), student.getGroup());
-    }
-
-    @Override
     protected void onOK(List<StudentInfo> selectedStudents) {
         // 由 createButtonPanel 中的自定义逻辑处理
     }
@@ -190,14 +198,6 @@ public class StudentProfileDialog extends BaseStudentSelectionDialog {
                     "错误", JOptionPane.ERROR_MESSAGE);
             }
         }
-    }
-
-    /**
-     * 显示学生档案采集对话框
-     */
-    public static void showDialog(JFrame parent, ProfileCallback callback) {
-        StudentProfileDialog dialog = new StudentProfileDialog(parent, callback);
-        dialog.setVisible(true);
     }
 
     public interface ProfileCallback {
