@@ -33,14 +33,15 @@ public class AiyouduUtil {
 
     public static String getUrlWithToken(String apiUrl) {
         try {
-            AYDRequest aydRequest = createAydRequest(apiUrl);
+            // 创建 HttpClient 实例
+            HttpClient client = HttpClient.newHttpClient();
 
             log.info("正在发送 GET 请求到：{}", apiUrl);
 
-            HttpRequest request = aydRequest.requestBuilder().GET().build();
+            HttpRequest request = createRequest(apiUrl).GET().build();
 
             // 发送请求并获取响应
-            HttpResponse<String> response = aydRequest.client().send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
             // 检查响应状态码
             int statusCode = response.statusCode();
@@ -80,10 +81,11 @@ public class AiyouduUtil {
             if (Main.debug) {
                 log.info("POST 内容：{}", postContent);
             }
-            AYDRequest result = createAydRequest(apiUrl);
-            HttpRequest request = result.requestBuilder().POST(HttpRequest.BodyPublishers.ofString(postContent)).build();
+            // 创建 HttpClient 实例
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = createRequest(apiUrl).POST(HttpRequest.BodyPublishers.ofString(postContent)).build();
             // 发送请求并获取响应
-            HttpResponse<String> response = result.client().send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             // 检查响应状态码
             int statusCode = response.statusCode();
             String responseBody = response.body();
@@ -113,9 +115,10 @@ public class AiyouduUtil {
             if (Main.debug) {
                 log.info("PUT 内容：{}", putContent);
             }
-            AYDRequest result = createAydRequest(apiUrl);
-            HttpRequest request = result.requestBuilder().PUT(HttpRequest.BodyPublishers.ofString(putContent)).build();
-            HttpResponse<String> response = result.client().send(request, HttpResponse.BodyHandlers.ofString());
+            // 创建 HttpClient 实例
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = createRequest(apiUrl).PUT(HttpRequest.BodyPublishers.ofString(putContent)).build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             int statusCode = response.statusCode();
             String responseBody = response.body();
             if (statusCode == 200) {
@@ -135,13 +138,11 @@ public class AiyouduUtil {
         return "";
     }
 
-    private static AYDRequest createAydRequest(String apiUrl) {
+    private static HttpRequest.Builder createRequest(String apiUrl) {
         if (Main.debug) {
             log.info("使用的 Token: {}...", token.substring(0, Math.min(50, token.length())));
             log.info("Token Header Key: {}", TOKEN_HEADER_KEY);
         }
-        // 创建 HttpClient 实例
-        HttpClient client = HttpClient.newHttpClient();
 
         // 构建 Cookie 字符串（如果有保存的 cookies）
         StringBuilder cookieHeader = new StringBuilder();
@@ -150,7 +151,7 @@ public class AiyouduUtil {
                                      cookieHeader.append(key).append("=").append(value).append("; ")
             );
             if (Main.debug)
-                log.info("使用 Cookie: {}", cookieHeader.toString().substring(0, Math.min(50, cookieHeader.length())) + "...");
+                log.info("使用 Cookie: {}", cookieHeader.substring(0, Math.min(50, cookieHeader.length())) + "...");
         }
 
         // 构建 HTTP POST 请求 - 使用可配置的 Token header key
@@ -165,7 +166,7 @@ public class AiyouduUtil {
         if (!savedCookies.isEmpty()) {
             requestBuilder.header("Cookie", cookieHeader.toString());
         }
-        return new AYDRequest(client, requestBuilder);
+        return requestBuilder;
     }
 
     public static void loginUsingBrowser() {
@@ -266,8 +267,5 @@ public class AiyouduUtil {
                 );
         }
         return null;
-    }
-
-    private record AYDRequest(HttpClient client, HttpRequest.Builder requestBuilder) {
     }
 }

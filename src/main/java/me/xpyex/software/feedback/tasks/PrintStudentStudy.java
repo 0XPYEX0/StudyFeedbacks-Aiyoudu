@@ -378,10 +378,7 @@ public class PrintStudentStudy {
 
         // 打印完整份数（每份 2 篇）
         for (int i = 0; i < fullCopies; i++) {
-            PrintStudy printPacket = PrintStudy.of()
-                                         .setStudentId(student.getStudentId())
-                                         .setPrintNum(1)  // 打印 1 份
-                                         .setArticleNum(2);  // 每份 2 篇
+            PrintStudy printPacket = PrintStudy.of().setStudentId(student.getStudentId()).setArticleNum(2);  // 每份 2 篇
 
             String requestJson = GsonUtil.toJsonStr(printPacket, false);
             AYDResponse response = AYDResponse.of(AiyouduUtil.postUrlWithToken(PrintStudy.url, requestJson));
@@ -399,10 +396,7 @@ public class PrintStudentStudy {
 
         // 如果有剩余，打印只有 1 篇的那份
         if (remainder > 0) {
-            PrintStudy printPacket = PrintStudy.of()
-                                         .setStudentId(student.getStudentId())
-                                         .setPrintNum(1)  // 打印 1 份
-                                         .setArticleNum(1);  // 每份 1 篇
+            PrintStudy printPacket = PrintStudy.of().setStudentId(student.getStudentId()).setArticleNum(1);  // 每份 1 篇
 
             String requestJson = GsonUtil.toJsonStr(printPacket, false);
             AYDResponse response = AYDResponse.of(AiyouduUtil.postUrlWithToken(PrintStudy.url, requestJson));
