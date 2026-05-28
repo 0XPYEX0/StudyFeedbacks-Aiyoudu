@@ -33,43 +33,14 @@ public class AiyouduUtil {
 
     public static String getUrlWithToken(String apiUrl) {
         try {
-            // 创建 HttpClient 实例
-            HttpClient client = HttpClient.newHttpClient();
+            AYDRequest aydRequest = getAydRequest(apiUrl);
 
             log.info("正在发送 GET 请求到：{}", apiUrl);
-            if (Main.debug) {
-                log.info("使用的 Token: {}...", token.substring(0, Math.min(50, token.length())));
-                log.info("Token Header Key: {}", TOKEN_HEADER_KEY);
-            }
 
-            // 构建 Cookie 字符串（如果有保存的 cookies）
-            StringBuilder cookieHeader = new StringBuilder();
-            if (!savedCookies.isEmpty()) {
-                savedCookies.forEach((key, value) ->
-                                         cookieHeader.append(key).append("=").append(value).append("; ")
-                );
-                if (Main.debug)
-                    log.info("使用 Cookie: {}", cookieHeader.toString().substring(0, Math.min(50, cookieHeader.length())) + "...");
-            }
-
-            // 构建 HTTP GET 请求 - 使用可配置的 Token header key
-            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-                                                     .uri(URI.create(apiUrl))
-                                                     .GET()
-                                                     .header("Content-Type", "application/json")
-                                                     .header(TOKEN_HEADER_KEY, token)  // 使用配置的 Token key
-                                                     .header("Accept", "application/json, text/plain, */*")
-                                                     .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0");
-
-            // 添加 Cookie（如果有）
-            if (!savedCookies.isEmpty()) {
-                requestBuilder.header("Cookie", cookieHeader.toString());
-            }
-
-            HttpRequest request = requestBuilder.build();
+            HttpRequest request = aydRequest.requestBuilder().GET().build();
 
             // 发送请求并获取响应
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = aydRequest.client().send(request, HttpResponse.BodyHandlers.ofString());
 
             // 检查响应状态码
             int statusCode = response.statusCode();
@@ -105,49 +76,17 @@ public class AiyouduUtil {
      */
     public static String postUrlWithToken(String apiUrl, String postContent) {
         try {
-            // 创建 HttpClient 实例
-            HttpClient client = HttpClient.newHttpClient();
-
             log.info("正在发送 POST 请求到：{}", apiUrl);
             if (Main.debug) {
-                log.info("使用的 Token: {}...", token.substring(0, Math.min(50, token.length())));
-                log.info("Token Header Key: {}", TOKEN_HEADER_KEY);
                 log.info("POST 内容：{}", postContent);
             }
-
-            // 构建 Cookie 字符串（如果有保存的 cookies）
-            StringBuilder cookieHeader = new StringBuilder();
-            if (!savedCookies.isEmpty()) {
-                savedCookies.forEach((key, value) ->
-                                         cookieHeader.append(key).append("=").append(value).append("; ")
-                );
-                if (Main.debug)
-                    log.info("使用 Cookie: {}", cookieHeader.toString().substring(0, Math.min(50, cookieHeader.length())) + "...");
-            }
-
-            // 构建 HTTP POST 请求 - 使用可配置的 Token header key
-            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
-                                                     .uri(URI.create(apiUrl))
-                                                     .POST(HttpRequest.BodyPublishers.ofString(postContent))
-                                                     .header("Content-Type", "application/json")
-                                                     .header(TOKEN_HEADER_KEY, token)  // 使用配置的 Token key
-                                                     .header("Accept", "application/json, text/plain, */*")
-                                                     .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0");
-
-            // 添加 Cookie（如果有）
-            if (!savedCookies.isEmpty()) {
-                requestBuilder.header("Cookie", cookieHeader.toString());
-            }
-
-            HttpRequest request = requestBuilder.build();
-
+            AYDRequest result = getAydRequest(apiUrl);
+            HttpRequest request = result.requestBuilder().POST(HttpRequest.BodyPublishers.ofString(postContent)).build();
             // 发送请求并获取响应
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
+            HttpResponse<String> response = result.client().send(request, HttpResponse.BodyHandlers.ofString());
             // 检查响应状态码
             int statusCode = response.statusCode();
             String responseBody = response.body();
-
             if (statusCode == 200) {
                 log.info("√ POST 请求成功！");
                 if (Main.debug) log.info("响应数据：{}", responseBody);
@@ -166,6 +105,67 @@ public class AiyouduUtil {
             log.error("访问 API 时发生错误：", e);
         }
         return "";
+    }
+
+    public static String putUrlWithToken(String apiUrl, String putContent) {
+        try {
+            log.info("正在发送 PUT 请求到：{}", apiUrl);
+            if (Main.debug) {
+                log.info("PUT 内容：{}", putContent);
+            }
+            AYDRequest result = getAydRequest(apiUrl);
+            HttpRequest request = result.requestBuilder().PUT(HttpRequest.BodyPublishers.ofString(putContent)).build();
+            HttpResponse<String> response = result.client().send(request, HttpResponse.BodyHandlers.ofString());
+            int statusCode = response.statusCode();
+            String responseBody = response.body();
+            if (statusCode == 200) {
+                log.info("√ PUT 请求成功！");
+                return responseBody;
+            } else {
+                log.error("✗ PUT 请求失败，状态码：{}", statusCode);
+                log.error("响应内容：{}", responseBody);
+
+                if (responseBody.contains("token 过期") || responseBody.contains("unauthorized")) {
+                    log.warn(" Token 可能已过期或无效");
+                }
+            }
+        } catch (Exception e) {
+            log.error("访问 API 时发生错误：", e);
+        }
+        return "";
+    }
+
+    private static AYDRequest getAydRequest(String apiUrl) {
+        if (Main.debug) {
+            log.info("使用的 Token: {}...", token.substring(0, Math.min(50, token.length())));
+            log.info("Token Header Key: {}", TOKEN_HEADER_KEY);
+        }
+        // 创建 HttpClient 实例
+        HttpClient client = HttpClient.newHttpClient();
+
+        // 构建 Cookie 字符串（如果有保存的 cookies）
+        StringBuilder cookieHeader = new StringBuilder();
+        if (!savedCookies.isEmpty()) {
+            savedCookies.forEach((key, value) ->
+                                     cookieHeader.append(key).append("=").append(value).append("; ")
+            );
+            if (Main.debug)
+                log.info("使用 Cookie: {}", cookieHeader.toString().substring(0, Math.min(50, cookieHeader.length())) + "...");
+        }
+
+        // 构建 HTTP POST 请求 - 使用可配置的 Token header key
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                                                 .uri(URI.create(apiUrl))
+                                                 .header("Content-Type", "application/json")
+                                                 .header(TOKEN_HEADER_KEY, token)  // 使用配置的 Token key
+                                                 .header("Accept", "application/json, text/plain, */*")
+                                                 .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0");
+
+        // 添加 Cookie（如果有）
+        if (!savedCookies.isEmpty()) {
+            requestBuilder.header("Cookie", cookieHeader.toString());
+        }
+        return new AYDRequest(client, requestBuilder);
     }
 
     public static void loginUsingBrowser() {
@@ -266,5 +266,8 @@ public class AiyouduUtil {
                 );
         }
         return null;
+    }
+
+    private record AYDRequest(HttpClient client, HttpRequest.Builder requestBuilder) {
     }
 }

@@ -358,7 +358,7 @@ public class PrintStudentStudy {
         log.info("  学生：{}, 打印篇数：{}", studentName, totalArticles);
 
         String originClassName = student.getClassName();
-        AYDResponse response1 = AYDResponse.of(AiyouduUtil.postUrlWithToken(StudentInfo.updateUrl, GsonUtil.toJsonStr(student.setClassName(student.getGroup()), false)));
+        AYDResponse response1 = AYDResponse.of(AiyouduUtil.putUrlWithToken(StudentInfo.updateUrl, GsonUtil.toJsonStr(student.setClassName(student.getGroup()), false)));
         if (response1.isSuccess()) {
             log.info("  √ 临时修改班级请求成功");
         } else {
@@ -428,7 +428,8 @@ public class PrintStudentStudy {
 
         log.info("  √ 打印完成，共合并 {} 份，总计 {} 篇",
             fullCopies + (remainder > 0 ? 1 : 0), totalArticles);
-        AYDResponse response2 = AYDResponse.of(AiyouduUtil.postUrlWithToken(StudentInfo.updateUrl, GsonUtil.toJsonStr(student.setClassName(originClassName), false)));
+
+        AYDResponse response2 = AYDResponse.of(AiyouduUtil.putUrlWithToken(StudentInfo.updateUrl, GsonUtil.toJsonStr(student.setClassName(originClassName), false)));
         if (response2.isSuccess()) {
             log.info("  √ 已恢复原班级");
         } else {
