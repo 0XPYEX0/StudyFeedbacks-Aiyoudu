@@ -23,8 +23,8 @@ public class ApplyStudentCard {
 
     public static ApplyStudentCard day(int amount) {
         return of().setDay(amount)
-                   .setApplyType(4)
-                   .setCurriculumCardId(14)
+                   .setApplyType(Type.DAY.getApplyType())
+                   .setCurriculumCardId(Type.DAY.getCurriculumCardId())
                    .setWisdomCurrency(amount * 10);
     }
 

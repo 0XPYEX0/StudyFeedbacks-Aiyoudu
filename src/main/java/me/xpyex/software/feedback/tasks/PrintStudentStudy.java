@@ -297,7 +297,7 @@ public class PrintStudentStudy {
         log.info("  课程卡类型：{}, 剩余天数：{}", cardType, expireDay);
 
         // cardType: 1-体验，2-包月起步，3-按日结算
-        if (cardType == 3 && expireDay > 0) {
+        if (cardType == StudentInfo.CardType.IN_DAYS.getCardType() && expireDay > 0) {
             log.info("  → 检测到按日结算卡且有剩余 {} 天，执行退费...", expireDay);
 
             RecoverDay recoverDay = RecoverDay.of()
@@ -358,7 +358,14 @@ public class PrintStudentStudy {
         log.info("  学生：{}, 打印篇数：{}", studentName, totalArticles);
 
         String originClassName = student.getClassName();
-        AYDResponse response1 = AYDResponse.of(AiyouduUtil.putUrlWithToken(StudentInfo.updateUrl, GsonUtil.toJsonStr(student.setClassName(student.getGroup()), false)));
+        AYDResponse response1 = AYDResponse.of(
+            AiyouduUtil.putUrlWithToken(StudentInfo.updateUrl,
+                GsonUtil.toJsonStr(
+                    student
+                        .setClassName(student.getGroup())
+                        .setCardType(StudentInfo.CardType.IN_MONTHS.getCardType())
+                        .setBillingType(0),  // 此处已经续费完月度卡，所以卡片类型必定是月度
+                    false)));
         if (response1.isSuccess()) {
             log.info("  √ 临时修改班级请求成功");
         } else {
@@ -423,11 +430,17 @@ public class PrintStudentStudy {
         log.info("  √ 打印完成，共合并 {} 份，总计 {} 篇",
             fullCopies + (remainder > 0 ? 1 : 0), totalArticles);
 
-        AYDResponse response2 = AYDResponse.of(AiyouduUtil.putUrlWithToken(StudentInfo.updateUrl, GsonUtil.toJsonStr(student.setClassName(originClassName), false)));
+        AYDResponse response2 = AYDResponse.of(
+            AiyouduUtil.putUrlWithToken(StudentInfo.updateUrl,
+                GsonUtil.toJsonStr(student
+                                       .setClassName(originClassName)
+                                       .setCardType(StudentInfo.CardType.IN_MONTHS.getCardType())
+                                       .setBillingType(0),  // 此处已经续费完月度卡，所以卡片类型必定是月度
+                    false)));
         if (response2.isSuccess()) {
             log.info("  √ 已恢复原班级");
         } else {
-            log.warn("  ! 恢复班级失败");
+            log.warn("  ! 恢复班级失败: {}", response2.getMessage());
         }
     }
 

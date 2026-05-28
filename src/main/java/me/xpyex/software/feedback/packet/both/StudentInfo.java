@@ -1,7 +1,9 @@
 package me.xpyex.software.feedback.packet.both;
 
 import java.util.List;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import me.xpyex.software.feedback.packet.in.DataInfo;
@@ -35,14 +37,24 @@ public class StudentInfo {
     private int cardType; // 课程卡类型，1是体验，2是包月起步，3是按日结算
     private int expireDay;  // 剩余天数
     private int dayValid;  //有效天数
-    private int curriculumCardId;  //课程卡ID
+    private int curriculumStatus = 2;  //课程卡???
     private int stage;  //阶段
     private int isTraining;  //是否培训中
     private int billingType;  //计费类型
-    private Double fractionEn;  //英语分数
-    private Double fractionTargetEn;  //英语目标分数
-    private Double fractionCn;  //语文分数
-    private Double maths;  //数学分数
+    private Double fractionEn = null;  //英语分数
+    private Double fractionTargetEn = null;  //英语目标分数
+    private Double fractionCn = null;  //语文分数
+    private Double maths = null;  //数学分数
     private String remark;  //备注
     private List<Integer> teacherIds;  //教师ID列表
+
+    @Getter
+    @AllArgsConstructor
+    public enum CardType {
+        IN_TRIAL(1),
+        IN_DAYS(3),
+        IN_MONTHS(2);
+
+        private final int cardType;
+    }
 }
