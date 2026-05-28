@@ -33,7 +33,7 @@ public class AiyouduUtil {
 
     public static String getUrlWithToken(String apiUrl) {
         try {
-            AYDRequest aydRequest = getAydRequest(apiUrl);
+            AYDRequest aydRequest = createAydRequest(apiUrl);
 
             log.info("正在发送 GET 请求到：{}", apiUrl);
 
@@ -80,7 +80,7 @@ public class AiyouduUtil {
             if (Main.debug) {
                 log.info("POST 内容：{}", postContent);
             }
-            AYDRequest result = getAydRequest(apiUrl);
+            AYDRequest result = createAydRequest(apiUrl);
             HttpRequest request = result.requestBuilder().POST(HttpRequest.BodyPublishers.ofString(postContent)).build();
             // 发送请求并获取响应
             HttpResponse<String> response = result.client().send(request, HttpResponse.BodyHandlers.ofString());
@@ -113,7 +113,7 @@ public class AiyouduUtil {
             if (Main.debug) {
                 log.info("PUT 内容：{}", putContent);
             }
-            AYDRequest result = getAydRequest(apiUrl);
+            AYDRequest result = createAydRequest(apiUrl);
             HttpRequest request = result.requestBuilder().PUT(HttpRequest.BodyPublishers.ofString(putContent)).build();
             HttpResponse<String> response = result.client().send(request, HttpResponse.BodyHandlers.ofString());
             int statusCode = response.statusCode();
@@ -135,7 +135,7 @@ public class AiyouduUtil {
         return "";
     }
 
-    private static AYDRequest getAydRequest(String apiUrl) {
+    private static AYDRequest createAydRequest(String apiUrl) {
         if (Main.debug) {
             log.info("使用的 Token: {}...", token.substring(0, Math.min(50, token.length())));
             log.info("Token Header Key: {}", TOKEN_HEADER_KEY);
