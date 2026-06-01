@@ -1,32 +1,18 @@
 package me.xpyex.software.feedback.util;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import me.xpyex.software.feedback.Main;
-import me.xpyex.software.feedback.packet.both.StudentInfo;
-import me.xpyex.software.feedback.packet.in.AYDResponse;
-import me.xpyex.software.feedback.packet.in.DataInfo;
-import me.xpyex.software.feedback.packet.in.FinishedTaskPanel;
-import me.xpyex.software.feedback.packet.in.SinglePanel;
-import me.xpyex.software.feedback.packet.out.SearchStudents;
 import org.slf4j.Logger;
 
 public class AiyouduUtil {
     public static final Logger log = LogUtil.getLogger();
     public static final String rootUrl = "https://group.aiyoudu.cn/";
     public static final String apiUrl = rootUrl + "api2/";
-    private static final String getProfileDateUrl = apiUrl + "organiztion/student/myMonthData?studentId={$id}&startDate={$start}&endDate={$end}";
-    private static final String dataInfoUrl = apiUrl + "organiztion/student/dataInfo?studentId={$id}";
-    // API 认证配置
-    private static final String TOKEN_HEADER_KEY = "Authorization";  // Token 在 HTTP 头中的 key 名称
     public static String token = null;
     // 保存 cookies 用于 API 请求
     private static Map<String, String> savedCookies = new HashMap<>();
@@ -141,7 +127,7 @@ public class AiyouduUtil {
     private static HttpRequest.Builder createRequest(String apiUrl) {
         if (Main.debug) {
             log.info("使用的 Token: {}...", token.substring(0, Math.min(50, token.length())));
-            log.info("Token Header Key: {}", TOKEN_HEADER_KEY);
+            log.info("Token Header Key: {}", "Authorization");
         }
 
         // 构建 Cookie 字符串（如果有保存的 cookies）
@@ -158,7 +144,7 @@ public class AiyouduUtil {
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                                                  .uri(URI.create(apiUrl))
                                                  .header("Content-Type", "application/json")
-                                                 .header(TOKEN_HEADER_KEY, token)  // 使用配置的 Token key
+                                                 .header("Authorization", token)  // 使用配置的 Token key
                                                  .header("Accept", "application/json, text/plain, */*")
                                                  .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0");
 
@@ -215,57 +201,5 @@ public class AiyouduUtil {
         } catch (Exception e) {
             log.error("发生错误：", e);
         }
-    }
-
-    public static DataInfo getStudentData(int id) {
-        AYDResponse obj = AYDResponse.of(getUrlWithToken(dataInfoUrl.replace("{$id}", "" + id)));
-        if (obj.isSuccess() && "成功".equals(obj.getMessage())) {
-            return GsonUtil.getGson().fromJson(obj.getData(), DataInfo.class);
-        }
-        return null;
-    }
-
-    public static List<StudentInfo> getAllStudents() {
-        ArrayList<StudentInfo> list = new ArrayList<>();
-        AYDResponse obj = AYDResponse.of(postUrlWithToken(SearchStudents.url, SearchStudents.of().setSize(100).toJsonStr(false)));
-        if (obj.isSuccess()) {
-            JsonArray students = obj.getDataAsJsonObject().getAsJsonArray("records");
-            for (JsonElement student : students) {
-                StudentInfo info = GsonUtil.getGson().fromJson(student, StudentInfo.class);
-                log.info("{} {} {}", info.getStudentId(), info.getRealName(), info.getGroup());
-                list.add(info.setDataInfo(getStudentData(info.getStudentId())));
-                try {
-                    Thread.sleep(1500);  //等1.5秒
-                } catch (InterruptedException e) {
-                    Thread.currentThread().stop();
-                    return list;
-                }
-            }
-        }
-        return list;
-    }
-
-    public static FinishedTaskPanel getStudentFinished(int id, String startTime, String endTime) {
-        String apiUrl = getProfileDateUrl
-                            .replace("{$id}", "" + id)
-                            .replace("{$start}", startTime)
-                            .replace("{$end}", endTime);
-        AYDResponse body = GsonUtil.parseObj(getUrlWithToken(apiUrl), AYDResponse.class);
-        if (body.isSuccess()) {
-            return GsonUtil.getGson().fromJson(body.getDataAsJsonObject().getAsJsonObject("myDataInfo"), FinishedTaskPanel.class)
-                       .setWordAndReadList(body.getDataAsJsonObject()
-                                               .getAsJsonArray("wordAndReadList").asList()
-                                               .stream()
-                                               .map(e -> GsonUtil.getGson().fromJson(e, SinglePanel.class))
-                                               .toList()
-                       ).setListeningAndList(body.getDataAsJsonObject()
-                                                 .getAsJsonArray("listeningAndList")
-                                                 .asList()
-                                                 .stream()
-                                                 .map(e -> GsonUtil.getGson().fromJson(e, SinglePanel.class))
-                                                 .toList()
-                );
-        }
-        return null;
     }
 }

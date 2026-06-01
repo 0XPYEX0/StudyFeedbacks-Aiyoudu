@@ -1,12 +1,21 @@
 package me.xpyex.software.feedback.tasks;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
+import me.xpyex.software.feedback.packet.in.AYDResponse;
+import me.xpyex.software.feedback.packet.in.DataInfo;
+import me.xpyex.software.feedback.packet.in.GroupInfo;
+import me.xpyex.software.feedback.packet.out.SearchStudents;
 import me.xpyex.software.feedback.util.AiyouduUtil;
+import me.xpyex.software.feedback.util.GsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +32,8 @@ public class StudentReader {
      * Value: 学生信息对象
      */
     private static final Map<Integer, StudentInfo> studentMap = new ConcurrentHashMap<>();
+    private static final Map<String, Integer> groupIdByName = new ConcurrentHashMap<>();
+    private static final String dataInfoUrl = AiyouduUtil.apiUrl + "organiztion/student/dataInfo?studentId={$id}";
 
     /**
      * 启动学生读取流程
@@ -64,7 +75,7 @@ public class StudentReader {
 
         studentMap.clear();
 
-        for (StudentInfo student : AiyouduUtil.getAllStudents()) {
+        for (StudentInfo student : getAllStudents()) {
             if (student.getGroup() != null
                     && !student.getGroup().trim().isEmpty()
                     && !student.getGroup().contains("非正式")
@@ -87,7 +98,7 @@ public class StudentReader {
      *
      * @return 学生 Map（只读视图）
      */
-    public static Map<Integer, StudentInfo> getAllStudents() {
+    public static Map<Integer, StudentInfo> copyStudents() {
         return Map.copyOf(studentMap);
     }
 
@@ -154,11 +165,49 @@ public class StudentReader {
         }
     }
 
-    /**
-     * 清空已保存的学生数据
-     */
-    public static void clear() {
-        studentMap.clear();
-        log.info("已清空所有保存的学生数据");
+    public static DataInfo getStudentData(int id) {
+        AYDResponse obj = AYDResponse.of(AiyouduUtil.getUrlWithToken(dataInfoUrl.replace("{$id}", "" + id)));
+        if (obj.isSuccess() && "成功".equals(obj.getMessage())) {
+            return GsonUtil.getGson().fromJson(obj.getData(), DataInfo.class);
+        }
+        return null;
+    }
+
+    public static List<StudentInfo> getAllStudents() {
+        ArrayList<StudentInfo> list = new ArrayList<>();
+        AYDResponse obj = AYDResponse.of(AiyouduUtil.postUrlWithToken(SearchStudents.url, SearchStudents.of().setSize(100).toJsonStr(false)));
+        if (obj.isSuccess()) {
+            JsonArray students = obj.getDataAsJsonObject().getAsJsonArray("records");
+            for (JsonElement student : students) {
+                StudentInfo info = GsonUtil.getGson().fromJson(student, StudentInfo.class);
+                AiyouduUtil.log.info("{} {} {}", info.getStudentId(), info.getRealName(), info.getGroup());
+                list.add(
+                    info.setDataInfo(getStudentData(info.getStudentId()))
+                        .setGroupId(getGroupId(info.getGroup()))
+                );
+                try {
+                    Thread.sleep(1500);  //等1.5秒
+                } catch (InterruptedException e) {
+                    Thread.currentThread().stop();
+                    return list;
+                }
+            }
+        }
+        return list;
+    }
+
+    public static void freshGroups() {
+        groupIdByName.clear();
+        AYDResponse response = AYDResponse.of(AiyouduUtil.getUrlWithToken(GroupInfo.url));
+        if (response.isSuccess()) {
+            response.getData().getAsJsonArray().asList().stream()
+                .map(e -> GsonUtil.getGson().fromJson(e, GroupInfo.class))
+                .forEach(group -> groupIdByName.put(group.getGroupName(), group.getGroupId()));
+        }
+    }
+
+    public static int getGroupId(String name) {
+        if (groupIdByName.isEmpty()) freshGroups();
+        return groupIdByName.getOrDefault(name, -1);
     }
 }

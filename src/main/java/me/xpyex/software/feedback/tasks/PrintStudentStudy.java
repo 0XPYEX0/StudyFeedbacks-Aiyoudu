@@ -159,7 +159,7 @@ public class PrintStudentStudy {
             }
         } else {
             // 否则使用所有学生
-            studentMap = StudentReader.getAllStudents();
+            studentMap = StudentReader.copyStudents();
         }
 
         int totalStudents = studentMap.size();

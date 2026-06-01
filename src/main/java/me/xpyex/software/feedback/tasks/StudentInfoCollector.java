@@ -7,10 +7,12 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.Setter;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
+import me.xpyex.software.feedback.packet.in.AYDResponse;
 import me.xpyex.software.feedback.packet.in.FinishedTaskPanel;
 import me.xpyex.software.feedback.packet.in.SinglePanel;
 import me.xpyex.software.feedback.packet.util.StudyContentsUtil;
 import me.xpyex.software.feedback.util.AiyouduUtil;
+import me.xpyex.software.feedback.util.GsonUtil;
 import me.xpyex.software.feedback.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +48,7 @@ public class StudentInfoCollector {
     };
     // 每个学生的操作间隔时间（秒）
     private static final int SLEEP_SECONDS_BETWEEN_STUDENTS = 5;
+    private static final String getProfileDateUrl = AiyouduUtil.apiUrl + "organiztion/student/myMonthData?studentId={$id}&startDate={$start}&endDate={$end}";
     @Setter
     public static String end;
     @Setter
@@ -134,7 +137,7 @@ public class StudentInfoCollector {
         List<StudentInfo> validStudents = new ArrayList<>();
 
         // 从 StudentReader 的静态 Map 中获取学生
-        for (StudentInfo student : StudentReader.getAllStudents().values()) {
+        for (StudentInfo student : StudentReader.copyStudents().values()) {
             validStudents.add(student);
             log.info("读取学生：{} [ID:{}] - 分组：{}",
                 student.getRealName(), student.getStudentId(), student.getGroup());
@@ -171,7 +174,7 @@ public class StudentInfoCollector {
 
                 // 获取指定日期范围的周报
                 log.info("  正在获取周报...");
-                FinishedTaskPanel finishedTask = AiyouduUtil.getStudentFinished(
+                FinishedTaskPanel finishedTask = getStudentFinished(
                     student.getStudentId(),
                     start,
                     end
@@ -307,5 +310,29 @@ public class StudentInfoCollector {
             default:
                 tasks.add(panel);  //不用特殊处理，直接添加
         }
+    }
+
+    public static FinishedTaskPanel getStudentFinished(int id, String startTime, String endTime) {
+        String apiUrl = getProfileDateUrl
+                            .replace("{$id}", "" + id)
+                            .replace("{$start}", startTime)
+                            .replace("{$end}", endTime);
+        AYDResponse body = GsonUtil.parseObj(AiyouduUtil.getUrlWithToken(apiUrl), AYDResponse.class);
+        if (body.isSuccess()) {
+            return GsonUtil.getGson().fromJson(body.getDataAsJsonObject().getAsJsonObject("myDataInfo"), FinishedTaskPanel.class)
+                       .setWordAndReadList(body.getDataAsJsonObject()
+                                               .getAsJsonArray("wordAndReadList").asList()
+                                               .stream()
+                                               .map(e -> GsonUtil.getGson().fromJson(e, SinglePanel.class))
+                                               .toList()
+                       ).setListeningAndList(body.getDataAsJsonObject()
+                                                 .getAsJsonArray("listeningAndList")
+                                                 .asList()
+                                                 .stream()
+                                                 .map(e -> GsonUtil.getGson().fromJson(e, SinglePanel.class))
+                                                 .toList()
+                );
+        }
+        return null;
     }
 }

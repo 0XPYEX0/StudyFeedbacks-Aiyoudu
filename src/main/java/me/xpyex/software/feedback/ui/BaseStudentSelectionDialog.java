@@ -84,7 +84,7 @@ public abstract class BaseStudentSelectionDialog extends JDialog {
         gbc.insets = new Insets(3, 5, 3, 5);
 
         studentCheckBoxes.clear();
-        Map<Integer, StudentInfo> allStudents = StudentReader.getAllStudents();
+        Map<Integer, StudentInfo> allStudents = StudentReader.copyStudents();
 
         int row = 0;
         for (Map.Entry<Integer, StudentInfo> entry : allStudents.entrySet()) {

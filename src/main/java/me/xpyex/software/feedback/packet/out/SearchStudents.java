@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import me.xpyex.software.feedback.packet.both.AYDPacket;
 import me.xpyex.software.feedback.util.AiyouduUtil;
-import me.xpyex.software.feedback.util.GsonUtil;
 
 // 用“学生列表”的翻页数据实现搜索
 @Data
