@@ -5,6 +5,7 @@ import java.util.List;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import me.xpyex.software.feedback.packet.both.AYDPacket;
 import me.xpyex.software.feedback.util.AiyouduUtil;
 import me.xpyex.software.feedback.util.GsonUtil;
 
@@ -12,16 +13,12 @@ import me.xpyex.software.feedback.util.GsonUtil;
 @Data
 @Accessors(chain = true)
 @NoArgsConstructor(staticName = "of")
-public class SearchStudents {
+public class SearchStudents extends AYDPacket {
     public static final String url = AiyouduUtil.apiUrl + "organiztion/student/page";
 
     private int current = 1;  // 当前页数
     private int size;  // 单页显示几个学生
     private SearchCondition t = SearchCondition.of();  // 默认搜索条件，在JSON里面叫做t
-
-    public String toJsonStr(boolean pretty) {
-        return GsonUtil.toJsonStr(this, pretty);
-    }
 
     @Data
     @Accessors(chain = true)

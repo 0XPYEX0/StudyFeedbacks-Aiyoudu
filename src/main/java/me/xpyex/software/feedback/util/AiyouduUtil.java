@@ -203,7 +203,7 @@ public class AiyouduUtil {
                     // 保存 cookies 用于后续请求
                     savedCookies = cookies;
                     token = tokenFromStorage;
-                    TimeUtil.sleep(5000);
+                    TimeUtil.sleep(3000);
                     loginUtil.quit();
                 } else {
                     log.warn("未能获取到 Token");
@@ -218,7 +218,7 @@ public class AiyouduUtil {
     }
 
     public static DataInfo getStudentData(int id) {
-        AYDResponse obj = GsonUtil.parseObj(getUrlWithToken(dataInfoUrl.replace("{$id}", "" + id)), AYDResponse.class);
+        AYDResponse obj = AYDResponse.of(getUrlWithToken(dataInfoUrl.replace("{$id}", "" + id)));
         if (obj.isSuccess() && "成功".equals(obj.getMessage())) {
             return GsonUtil.getGson().fromJson(obj.getData(), DataInfo.class);
         }
@@ -227,8 +227,8 @@ public class AiyouduUtil {
 
     public static List<StudentInfo> getAllStudents() {
         ArrayList<StudentInfo> list = new ArrayList<>();
-        AYDResponse obj = GsonUtil.parseObj(postUrlWithToken(SearchStudents.url, SearchStudents.of().setSize(100).toJsonStr(false)), AYDResponse.class);
-        if (obj.isSuccess() && "成功".equals(obj.getMessage())) {
+        AYDResponse obj = AYDResponse.of(postUrlWithToken(SearchStudents.url, SearchStudents.of().setSize(100).toJsonStr(false)));
+        if (obj.isSuccess()) {
             JsonArray students = obj.getDataAsJsonObject().getAsJsonArray("records");
             for (JsonElement student : students) {
                 StudentInfo info = GsonUtil.getGson().fromJson(student, StudentInfo.class);
@@ -251,7 +251,7 @@ public class AiyouduUtil {
                             .replace("{$start}", startTime)
                             .replace("{$end}", endTime);
         AYDResponse body = GsonUtil.parseObj(getUrlWithToken(apiUrl), AYDResponse.class);
-        if (body.isSuccess() && "成功".equals(body.getMessage())) {
+        if (body.isSuccess()) {
             return GsonUtil.getGson().fromJson(body.getDataAsJsonObject().getAsJsonObject("myDataInfo"), FinishedTaskPanel.class)
                        .setWordAndReadList(body.getDataAsJsonObject()
                                                .getAsJsonArray("wordAndReadList").asList()

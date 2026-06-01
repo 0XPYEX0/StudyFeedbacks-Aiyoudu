@@ -5,13 +5,14 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import me.xpyex.software.feedback.packet.both.AYDPacket;
 import me.xpyex.software.feedback.util.AiyouduUtil;
 
 @Data
 @Accessors(chain = true)
 @NoArgsConstructor(staticName = "of")
 // 续费
-public class ApplyStudentCard {
+public class ApplyStudentCard extends AYDPacket {
     //  https://group.aiyoudu.cn/api2/organiztion/student/studentApply
     public static final String url = AiyouduUtil.apiUrl + "organiztion/student/studentApply";
     private int studentId;

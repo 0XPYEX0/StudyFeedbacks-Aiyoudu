@@ -488,8 +488,7 @@ public class PrintStudentStudy {
         String url = StudyContentsUtil.getPrintUrl(student, StudyContentsUtil.FinishedType.NOT_FINISHED, StudyContentsUtil.StudyType.NORMAL_READ, 100, null);
 
         try {
-            String responseJson = AiyouduUtil.getUrlWithToken(url);
-            AYDResponse response = GsonUtil.parseObj(responseJson, AYDResponse.class);
+            AYDResponse response = AYDResponse.of(AiyouduUtil.getUrlWithToken(url));
 
             if (response.isSuccess() && "成功".equals(response.getMessage())) {
                 // 从 records 数组中获取待反馈的文章列表

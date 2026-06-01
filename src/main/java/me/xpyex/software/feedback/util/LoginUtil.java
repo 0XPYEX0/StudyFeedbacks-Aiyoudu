@@ -51,7 +51,7 @@ public class LoginUtil {
                 log.info("正在配置 Edge 驱动...");
                 WebDriverManager.edgedriver().setup();
             } catch (Exception e) {
-                log.warn("自动下载失败，尝试使用系统 Edge: {}", e.getMessage());
+                log.warn("自动下载失败: {}", e.getMessage());
             }
         }
 

@@ -42,7 +42,7 @@ public class StudyContentsUtil {
      */
     public static int getAverageDifficulty(long studentId, FinishedType finishedType, StudyType studyType, int averageAmount) {
         String url = getPrintUrl(studentId, finishedType, studyType, averageAmount, null);
-        AYDResponse response = GsonUtil.parseObj(AiyouduUtil.getUrlWithToken(url), AYDResponse.class);
+        AYDResponse response = AYDResponse.of(AiyouduUtil.getUrlWithToken(url));
         if (response.isSuccess()) {
             try {
                 return getStudyContents(response).stream()

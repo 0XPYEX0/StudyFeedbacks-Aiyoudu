@@ -24,7 +24,7 @@ public class AYDResponse {
     }
 
     public JsonObject getDataAsJsonObject() {
-        return data.getAsJsonObject();
+        return dataIsJsonObject() ? data.getAsJsonObject() : new JsonObject();
     }
 
     public boolean dataIsJsonObject() {

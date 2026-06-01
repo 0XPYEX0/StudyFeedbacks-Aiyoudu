@@ -12,7 +12,7 @@ import me.xpyex.software.feedback.util.AiyouduUtil;
 @Data
 @Accessors(chain = true)
 @NoArgsConstructor(staticName = "of")
-public class StudentInfo {
+public class StudentInfo extends AYDPacket {
     public static final String updateUrl = AiyouduUtil.apiUrl + "organiztion/student/updateStudentInfo";
 
     private int studentId;  //学生在系统里的ID，用于访问API
