@@ -13,6 +13,8 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.util.ConfigManager;
 
@@ -23,7 +25,7 @@ import me.xpyex.software.feedback.util.ConfigManager;
 public class RenewStudentDialog extends BaseStudentSelectionDialog {
     // 内存中的续费配置，键为学生姓名，值为续费天数
     private static final Map<String, Integer> renewConfig = new HashMap<>();
-    
+
     private final Map<Integer, JTextField> dayFields = new HashMap<>();
     private RenewCallback callback;
 
@@ -65,7 +67,7 @@ public class RenewStudentDialog extends BaseStudentSelectionDialog {
     protected String formatStudentInfo(StudentInfo student) {
         String cardType = student.getCardType() == StudentInfo.CardType.IN_DAYS.getCardType() ? "天卡" : "月卡";
         int expireDay = student.getExpireDay();
-        return String.format("%-10s [%s] %s 剩余%d天", 
+        return String.format("%-10s [%s] %s 剩余%d天",
             student.getRealName(), student.getGroup(), cardType, expireDay);
     }
 
@@ -82,29 +84,29 @@ public class RenewStudentDialog extends BaseStudentSelectionDialog {
         gbc.gridx = 2;
         gbc.weightx = 0;
         gbc.fill = GridBagConstraints.NONE;
-        
-        // 从内存配置中加载默认值，默认为0（不续费）
-        int defaultDays = renewConfig.getOrDefault(student.getRealName(), 0);
-        
+
+        // 从内存配置中加载默认值，默认为1（续1天）
+        int defaultDays = renewConfig.getOrDefault(student.getRealName(), 1);
+
         JTextField dayField = new JTextField(String.valueOf(defaultDays), 5);
         dayField.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         dayField.setHorizontalAlignment(JTextField.CENTER);
         dayFields.put(student.getStudentId(), dayField);
 
         // 实时更新内存配置
-        dayField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+        dayField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
-            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+            public void insertUpdate(DocumentEvent e) {
                 saveDayConfig(student.getRealName(), dayField);
             }
 
             @Override
-            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+            public void removeUpdate(DocumentEvent e) {
                 saveDayConfig(student.getRealName(), dayField);
             }
 
             @Override
-            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+            public void changedUpdate(DocumentEvent e) {
                 saveDayConfig(student.getRealName(), dayField);
             }
         });

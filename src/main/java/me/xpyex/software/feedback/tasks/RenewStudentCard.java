@@ -1,6 +1,8 @@
 package me.xpyex.software.feedback.tasks;
 
 import com.google.gson.JsonObject;
+import java.util.List;
+import java.util.stream.Collectors;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.packet.in.AYDResponse;
 import me.xpyex.software.feedback.packet.out.ApplyStudentCard;
@@ -12,7 +14,20 @@ import org.slf4j.Logger;
 
 public class RenewStudentCard {
     public static Logger log = LogUtil.getLogger();
+
+    /**
+     * 开始续费（处理所有学生）
+     */
     public static void start() {
+        startWithStudents(null);
+    }
+
+    /**
+     * 开始续费（处理指定学生列表）
+     *
+     * @param students 要续费的学生列表，null表示处理所有学生
+     */
+    public static void startWithStudents(List<StudentInfo> students) {
         if (AiyouduUtil.token == null) {
             LogUtil.warn(" × 请先登录");
             return;
@@ -22,7 +37,13 @@ public class RenewStudentCard {
             return;
         }
         JsonObject config = ConfigManager.loadConfig("renew");
-        StudentReader.copyStudents().values().forEach(student -> {
+
+        // 确定要处理的学生列表
+        var studentMap = (students != null)
+                             ? students.stream().collect(Collectors.toMap(StudentInfo::getStudentId, s -> s))
+                             : StudentReader.copyStudents();
+
+        studentMap.values().forEach(student -> {
             int day = 1;
             if (config.has(student.getRealName())) day = config.get(student.getRealName()).getAsInt();
             if (day > 0) {
@@ -49,7 +70,7 @@ public class RenewStudentCard {
                 if (response.isSuccess()) {
                     log.info("  √ {} 的学生卡续费成功: {} 天", student.getRealName(), day);
                 } else {
-                    log.info("  ✗ {} 的学生卡续费失败：{}", student.getRealName(), response.getMessage());
+                    LogUtil.logNecessary("  ✗ " + student.getRealName() + " 的学生卡续费失败：" + response.getMessage());
                 }
             }
         });

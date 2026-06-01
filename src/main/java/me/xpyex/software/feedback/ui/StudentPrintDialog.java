@@ -13,6 +13,8 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.tasks.PrintStudentStudy;
 import me.xpyex.software.feedback.util.ConfigManager;
@@ -74,19 +76,19 @@ public class StudentPrintDialog extends BaseStudentSelectionDialog {
         articleFields.put(student.getStudentId(), articleField);
 
         // 实时保存配置
-        articleField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+        articleField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
-            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+            public void insertUpdate(DocumentEvent e) {
                 saveArticleConfig(student.getRealName(), articleField);
             }
 
             @Override
-            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+            public void removeUpdate(DocumentEvent e) {
                 saveArticleConfig(student.getRealName(), articleField);
             }
 
             @Override
-            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+            public void changedUpdate(DocumentEvent e) {
                 saveArticleConfig(student.getRealName(), articleField);
             }
         });

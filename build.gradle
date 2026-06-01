@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'me.xpyex.software'
-version = '6'
+version = '7'
 
 repositories {
     mavenCentral()

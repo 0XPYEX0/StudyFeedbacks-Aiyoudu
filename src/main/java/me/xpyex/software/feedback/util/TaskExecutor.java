@@ -101,9 +101,9 @@ public class TaskExecutor {
             currentTaskThread = null;
             updateStatus("已停止");
             setButtonsEnabled(true);
-            log("任务已停止");
+            LogUtil.logNecessary("任务已停止");
         } else {
-            log("当前没有正在运行的任务");
+            LogUtil.warn("当前没有正在运行的任务");
         }
     }
 

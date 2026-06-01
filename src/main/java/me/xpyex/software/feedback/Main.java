@@ -4,6 +4,7 @@ import java.util.Scanner;
 import me.xpyex.software.feedback.tasks.ApiTester;
 import me.xpyex.software.feedback.tasks.DeepSeekAnalyzer;
 import me.xpyex.software.feedback.tasks.PrintStudentStudy;
+import me.xpyex.software.feedback.tasks.RenewStudentCard;
 import me.xpyex.software.feedback.tasks.StudentInfoCollector;
 import me.xpyex.software.feedback.tasks.StudentReader;
 import me.xpyex.software.feedback.tasks.TokenGetter;
@@ -78,6 +79,10 @@ public class Main {
                 System.out.println("开始批量处理学生...");
                 String error = TaskExecutor.executeTask(PrintStudentStudy::start, "PrintStudentStudy-Thread");
                 if (error != null) continue;
+            } else if ("6".equals(command) || "renew".equalsIgnoreCase(command) || "renewCard".equalsIgnoreCase(command)) {
+                System.out.println("开始批量续费学生卡...");
+                String error = TaskExecutor.executeTask(RenewStudentCard::start, "RenewStudentCard-Thread");
+                if (error != null) continue;
             } else if ("G".equalsIgnoreCase(command) || "get".equalsIgnoreCase(command) || "getURL".equalsIgnoreCase(command)) {
                 System.out.println("\n请输入要测试的 URL (或直接回车返回): ");
                 in.nextLine();
@@ -125,6 +130,7 @@ public class Main {
         System.out.println("【3】collect[Profiles]    尝试登录，并收集所有信息，然后记录 [需先执行 2]");
         System.out.println("【4】feedback             将根据收集到的所有信息，交给 AI 生成一份点评 [需先执行 3]");
         System.out.println("【5】printStudy           批量打印作业（续费 + 打印 + 退费）[需先执行 2]");
+        System.out.println("【6】renewCard            批量续费学生卡 [需先执行 2]");
         System.out.println("【G】getURL               测试 GET API（自动携带 Token）");
         System.out.println("【P】postURL              测试 POST API（自动携带 Token 和请求体）");
         System.out.println("【GUI】gui                打开图形界面窗口");

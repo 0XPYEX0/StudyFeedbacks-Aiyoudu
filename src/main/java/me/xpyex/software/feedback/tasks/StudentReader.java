@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import me.xpyex.software.feedback.Main;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.packet.in.AYDResponse;
 import me.xpyex.software.feedback.packet.in.DataInfo;
@@ -186,7 +187,7 @@ public class StudentReader {
                 AiyouduUtil.log.info("{} {} {}", info.getStudentId(), info.getRealName(), info.getGroup());
                 list.add(
                     info.setDataInfo(getStudentData(info.getStudentId()))
-                        .setGroupId(getGroupId(info.getGroup()))
+                        .setGroupId(info.getGroup() != null ? getGroupId(info.getGroup()) : info.getGroupId())
                 );
                 try {
                     Thread.sleep(1500);  //等1.5秒
@@ -210,6 +211,7 @@ public class StudentReader {
     }
 
     public static int getGroupId(String name) {
+        if (Main.debug) log.info("正在获取分组ID：{}", name);
         if (groupIdByName.isEmpty()) freshGroups();
         return groupIdByName.getOrDefault(name, -1);
     }

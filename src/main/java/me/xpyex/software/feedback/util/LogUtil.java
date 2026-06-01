@@ -11,6 +11,14 @@ public class LogUtil {
     private static final int lineLength = 40;
 
     public static Logger getLogger() {
+        String name = getCallerName();
+        if (!LOGGER_MAP.containsKey(name)) {
+            LOGGER_MAP.put(name, LoggerFactory.getLogger(name));
+        }
+        return LOGGER_MAP.get(name);
+    }
+
+    private static String getCallerName() {
         // 获取调用者的类名
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         // stackTrace[0] = getStackTrace, stackTrace[1] = getLogger, stackTrace[2] = 实际调用者
@@ -27,11 +35,7 @@ public class LogUtil {
                 break;
             }
         }
-
-        if (!LOGGER_MAP.containsKey(name)) {
-            LOGGER_MAP.put(name, LoggerFactory.getLogger(name));
-        }
-        return LOGGER_MAP.get(name);
+        return name;
     }
 
     public static void line() {
@@ -45,7 +49,7 @@ public class LogUtil {
 
     public static void logNecessary(String msg) {
         if (MainWindow.current != null) {
-            MainWindow.current.log(msg);
+            MainWindow.current.log("[" + getCallerName() + "] " + msg);
         } else {
             getLogger().info(msg);
         }
@@ -53,7 +57,7 @@ public class LogUtil {
 
     public static void warn(String msg) {
         if (MainWindow.current != null) {
-            JOptionPane.showMessageDialog(MainWindow.current, msg, "警告", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(MainWindow.current, msg, "警告: " + getCallerName(), JOptionPane.WARNING_MESSAGE);
         } else {
             getLogger().warn(msg);
         }

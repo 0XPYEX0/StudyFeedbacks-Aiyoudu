@@ -35,6 +35,7 @@ import me.xpyex.software.feedback.util.TimeUtil;
  * 主窗口类 - 提供图形化界面
  */
 public class MainWindow extends JFrame {
+    public static MainWindow current;
     private JTextArea logArea;
     private JButton btnGetToken;
     private JButton btnReadStudents;
@@ -44,7 +45,6 @@ public class MainWindow extends JFrame {
     private JButton btnRenewCard;
     private JButton btnStop;
     private JLabel statusLabel;
-    public static MainWindow current;
 
     public MainWindow() {
         initUI();
@@ -277,7 +277,10 @@ public class MainWindow extends JFrame {
             // 打开续费配置对话框
             RenewStudentDialog.showDialog(this, selectedStudents -> {
                 log("开始批量续费学生卡...");
-                String error = TaskExecutor.executeTask(RenewStudentCard::start, "RenewStudentCard-Thread");
+                String error = TaskExecutor.executeTask(
+                    () -> RenewStudentCard.startWithStudents(selectedStudents),
+                    "RenewStudentCard-Thread"
+                );
                 // 如果返回错误信息，executeTask已经显示了提示框
             });
         });
