@@ -23,6 +23,7 @@ import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 import me.xpyex.software.feedback.tasks.DeepSeekAnalyzer;
 import me.xpyex.software.feedback.tasks.PrintStudentStudy;
+import me.xpyex.software.feedback.tasks.RenewStudentCard;
 import me.xpyex.software.feedback.tasks.StudentInfoCollector;
 import me.xpyex.software.feedback.tasks.StudentReader;
 import me.xpyex.software.feedback.tasks.TokenGetter;
@@ -40,6 +41,7 @@ public class MainWindow extends JFrame {
     private JButton btnCollectProfiles;
     private JButton btnFeedback;
     private JButton btnPrintStudy;
+    private JButton btnRenewCard;
     private JButton btnStop;
     private JLabel statusLabel;
     public static MainWindow current;
@@ -146,10 +148,14 @@ public class MainWindow extends JFrame {
         btnPrintStudy = createButton("打印学案", "批量打印学生学案");
         panel.add(btnPrintStudy, gbc);
 
+        gbc.gridx = 5;
+        btnRenewCard = createButton("续费学生卡", "根据配置文件批量续费学生卡");
+        panel.add(btnRenewCard, gbc);
+
         // 第二行：停止按钮和说明
         gbc.gridx = 0;
         gbc.gridy = 1;
-        gbc.gridwidth = 5;
+        gbc.gridwidth = 6;
         btnStop = createButton("停止任务", "立即停止当前正在运行的任务");
         btnStop.setBackground(new Color(255, 100, 100));
         btnStop.setForeground(Color.BLACK);
@@ -256,6 +262,22 @@ public class MainWindow extends JFrame {
                     () -> PrintStudentStudy.startWithStudents(selectedStudents),
                     "PrintStudentStudy-Thread"
                 );
+                // 如果返回错误信息，executeTask已经显示了提示框
+            });
+        });
+
+        btnRenewCard.addActionListener(e -> {
+            if (!StudentReader.hasStudents()) {
+                JOptionPane.showMessageDialog(this,
+                    "请先执行【读取学生】操作！",
+                    "提示",
+                    JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            // 打开续费配置对话框
+            RenewStudentDialog.showDialog(this, selectedStudents -> {
+                log("开始批量续费学生卡...");
+                String error = TaskExecutor.executeTask(RenewStudentCard::start, "RenewStudentCard-Thread");
                 // 如果返回错误信息，executeTask已经显示了提示框
             });
         });

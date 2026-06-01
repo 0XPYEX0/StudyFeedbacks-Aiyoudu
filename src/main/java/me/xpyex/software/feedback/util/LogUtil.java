@@ -1,6 +1,8 @@
 package me.xpyex.software.feedback.util;
 
 import java.util.WeakHashMap;
+import javax.swing.JOptionPane;
+import me.xpyex.software.feedback.ui.MainWindow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,5 +41,21 @@ public class LogUtil {
     public static void line(String sign, int length) {
         if (sign == null || sign.trim().isEmpty()) return;
         getLogger().info(sign.repeat(Math.max(0, length)));
+    }
+
+    public static void logNecessary(String msg) {
+        if (MainWindow.current != null) {
+            MainWindow.current.log(msg);
+        } else {
+            getLogger().info(msg);
+        }
+    }
+
+    public static void warn(String msg) {
+        if (MainWindow.current != null) {
+            JOptionPane.showMessageDialog(MainWindow.current, msg, "警告", JOptionPane.WARNING_MESSAGE);
+        } else {
+            getLogger().warn(msg);
+        }
     }
 }

@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import me.xpyex.software.feedback.packet.both.AYDPacket;
+import me.xpyex.software.feedback.packet.in.AYDResponse;
 import me.xpyex.software.feedback.util.AiyouduUtil;
 
 @Data
@@ -34,6 +35,11 @@ public class ApplyStudentCard extends AYDPacket {
                    .setApplyType(Type.MONTH.getApplyType())
                    .setCurriculumCardId(Type.MONTH.getCurriculumCardId())
                    .setWisdomCurrency(amount * 100);
+    }
+
+    @Override
+    public AYDResponse sendToUrl() {
+        return AYDResponse.of(AiyouduUtil.postUrlWithToken(url, this.toJsonStr(false)));
     }
 
     @Getter
