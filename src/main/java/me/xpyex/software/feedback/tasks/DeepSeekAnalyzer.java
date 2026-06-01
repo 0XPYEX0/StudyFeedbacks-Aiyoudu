@@ -14,7 +14,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
+import me.xpyex.software.feedback.ui.MainWindow;
 import me.xpyex.software.feedback.util.GsonUtil;
+import me.xpyex.software.feedback.util.LogUtil;
 import me.xpyex.software.feedback.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,9 +56,9 @@ public class DeepSeekAnalyzer {
     public static void startWithStudents(List<StudentInfo> students) {
         selectedStudents = students;
 
-        log.info("========================================");
+        LogUtil.line();
         log.info("   DeepSeek AI 对话分析器启动");
-        log.info("========================================");
+        LogUtil.line();
 
         try {
             // 1. 加载配置文件
@@ -75,10 +77,13 @@ public class DeepSeekAnalyzer {
             // 3. 逐个与 DeepSeek 对话
             analyzeWithDeepSeek(studentDataList);
 
-            log.info("========================================");
-            log.info("   所有学生数据分析完成！");
-            log.info("========================================");
-
+            if (MainWindow.current != null) {
+                MainWindow.current.log("所有学生数据分析完成！");
+            } else {
+                LogUtil.line();
+                log.info("   所有学生数据分析完成！");
+                LogUtil.line();
+            }
         } catch (Exception e) {
             log.error("分析过程中发生错误：", e);
         } finally {

@@ -11,6 +11,7 @@ import me.xpyex.software.feedback.packet.in.AYDResponse;
 import me.xpyex.software.feedback.packet.in.FinishedTaskPanel;
 import me.xpyex.software.feedback.packet.in.SinglePanel;
 import me.xpyex.software.feedback.packet.util.StudyContentsUtil;
+import me.xpyex.software.feedback.ui.MainWindow;
 import me.xpyex.software.feedback.util.AiyouduUtil;
 import me.xpyex.software.feedback.util.GsonUtil;
 import me.xpyex.software.feedback.util.TimeUtil;
@@ -131,21 +132,7 @@ public class StudentInfoCollector {
             return result;
         }
 
-        // 否则使用所有学生
-        log.info(">>> 正在从内存中读取所有学生列表...");
-
-        List<StudentInfo> validStudents = new ArrayList<>();
-
-        // 从 StudentReader 的静态 Map 中获取学生
-        for (StudentInfo student : StudentReader.copyStudents().values()) {
-            validStudents.add(student);
-            log.info("读取学生：{} [ID:{}] - 分组：{}",
-                student.getRealName(), student.getStudentId(), student.getGroup());
-        }
-
-        log.info("共读取 {} 个有 group 值的学生", validStudents.size());
-
-        return validStudents;
+        return StudentReader.copyStudents().values().stream().toList();
     }
 
     /**

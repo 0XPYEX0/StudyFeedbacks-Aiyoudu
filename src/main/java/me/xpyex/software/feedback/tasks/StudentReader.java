@@ -14,6 +14,7 @@ import me.xpyex.software.feedback.packet.in.AYDResponse;
 import me.xpyex.software.feedback.packet.in.DataInfo;
 import me.xpyex.software.feedback.packet.in.GroupInfo;
 import me.xpyex.software.feedback.packet.out.SearchStudents;
+import me.xpyex.software.feedback.ui.MainWindow;
 import me.xpyex.software.feedback.util.AiyouduUtil;
 import me.xpyex.software.feedback.util.GsonUtil;
 import org.slf4j.Logger;
@@ -89,8 +90,10 @@ public class StudentReader {
             }
         }
 
-        log.info("共找到 {} 个学生，其中 {} 个学生有 group 值并已保存",
-            studentMap.size(), studentMap.size());
+        if (MainWindow.current != null) {
+            MainWindow.current.log("已保存 " + studentMap.size() + " 个学生");
+        }
+        log.info("已保存 {} 个学生", studentMap.size());
     }
 
     /**

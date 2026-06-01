@@ -1,5 +1,6 @@
 package me.xpyex.software.feedback.tasks;
 
+import me.xpyex.software.feedback.ui.MainWindow;
 import me.xpyex.software.feedback.util.AiyouduUtil;
 import me.xpyex.software.feedback.util.TimeUtil;
 import org.slf4j.Logger;
@@ -42,6 +43,9 @@ public class TokenGetter {
                 }
             }
 
+            if (MainWindow.current != null) {
+                MainWindow.current.log("√ 登录成功！Token 已获取");
+            }
             log.info("√ 登录成功！Token 已获取");
             log.info("Token: {}...", AiyouduUtil.token.substring(0, Math.min(20, AiyouduUtil.token.length())));
 

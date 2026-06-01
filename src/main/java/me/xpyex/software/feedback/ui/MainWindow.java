@@ -42,6 +42,7 @@ public class MainWindow extends JFrame {
     private JButton btnPrintStudy;
     private JButton btnStop;
     private JLabel statusLabel;
+    public static MainWindow current;
 
     public MainWindow() {
         initUI();
@@ -62,21 +63,8 @@ public class MainWindow extends JFrame {
             MainWindow window = new MainWindow();
             window.log("欢迎使用爱优读学生反馈系统");
             window.log("请点击上方按钮执行相应操作");
-
-            // 重定向标准输出到GUI日志区域
-            ConsoleRedirector.redirect(new ConsoleRedirector.LogCallback() {
-                @Override
-                public void log(String message) {
-                    window.log(message);
-                }
-
-                @Override
-                public void logError(String message) {
-                    window.logError(message);
-                }
-            });
-
             window.setVisible(true);
+            current = window;
         });
     }
 
@@ -278,7 +266,7 @@ public class MainWindow extends JFrame {
     /**
      * 记录日志
      */
-    private void log(String message) {
+    public void log(String message) {
         SwingUtilities.invokeLater(() -> {
             String timestamp = TimeUtil.parseDate(new Date(), "HH:mm:ss");
             logArea.append("[" + timestamp + "] " + message + "\n");
@@ -289,7 +277,7 @@ public class MainWindow extends JFrame {
     /**
      * 记录错误日志
      */
-    private void logError(String message) {
+    public void logError(String message) {
         SwingUtilities.invokeLater(() -> {
             String timestamp = TimeUtil.parseDate(new Date(), "HH:mm:ss");
             logArea.append("[" + timestamp + "] [错误] " + message + "\n");

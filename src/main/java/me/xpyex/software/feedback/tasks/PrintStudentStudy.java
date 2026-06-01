@@ -16,6 +16,7 @@ import me.xpyex.software.feedback.packet.out.PrintStudy;
 import me.xpyex.software.feedback.packet.out.RecoverDay;
 import me.xpyex.software.feedback.packet.out.RecoverMonth;
 import me.xpyex.software.feedback.packet.util.StudyContentsUtil;
+import me.xpyex.software.feedback.ui.MainWindow;
 import me.xpyex.software.feedback.util.AiyouduUtil;
 import me.xpyex.software.feedback.util.ConfigManager;
 import me.xpyex.software.feedback.util.GsonUtil;
@@ -85,9 +86,13 @@ public class PrintStudentStudy {
             // 步骤 4: 输出需要人工核查的学生名单
             printManualCheckList();
 
-            LogUtil.line();
-            log.info("   批量处理任务完成！");
-            LogUtil.line();
+            if (MainWindow.current != null) {
+                MainWindow.current.log("批量处理任务完成！");
+            } else {
+                LogUtil.line();
+                log.info("   批量处理任务完成！");
+                LogUtil.line();
+            }
 
         } catch (Exception e) {
             log.error("批量处理过程中发生错误：", e);
