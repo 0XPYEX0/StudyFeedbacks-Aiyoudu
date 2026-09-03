@@ -9,21 +9,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import lombok.experimental.ExtensionMethod;
 import me.xpyex.software.feedback.Main;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.packet.in.AYDResponse;
 import me.xpyex.software.feedback.packet.in.DataInfo;
 import me.xpyex.software.feedback.packet.in.GroupInfo;
 import me.xpyex.software.feedback.packet.out.SearchStudents;
-import me.xpyex.software.feedback.ui.MainWindow;
 import me.xpyex.software.feedback.util.AiyouduUtil;
 import me.xpyex.software.feedback.util.GsonUtil;
+import me.xpyex.software.feedback.util.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * 学生信息读取器
- * 负责从系统读取所有有效学生（有 group 值）并保存在静态 Map 中
+@ExtensionMethod(AiyouduUtil.class)
+/*
+  学生信息读取器
+  负责从系统读取所有有效学生（有 group 值）并保存在静态 Map 中
  */
 public class StudentReader {
     private static final Logger log = LoggerFactory.getLogger(StudentReader.class.getSimpleName());
@@ -47,7 +49,7 @@ public class StudentReader {
 
         try {
             // 步骤 1: 检查 Token 是否存在
-            if (!TokenGetter.hasToken()) {
+            if (!AiyouduUtil.hasToken()) {
                 log.error("❌ 未检测到有效 Token！");
                 log.error("请先执行【1】getToken 获取 Token");
                 return;
@@ -90,11 +92,7 @@ public class StudentReader {
                     student.getRealName(), student.getStudentId());
             }
         }
-
-        if (MainWindow.current != null) {
-            MainWindow.current.log("已保存 " + studentMap.size() + " 个学生");
-        }
-        log.info("已保存 {} 个学生", studentMap.size());
+        LogUtil.logNecessary("已保存 " + studentMap.size() + " 个学生");
     }
 
     /**
@@ -170,8 +168,8 @@ public class StudentReader {
     }
 
     public static DataInfo getStudentData(int id) {
-        AYDResponse obj = AYDResponse.of(AiyouduUtil.getUrlWithToken(dataInfoUrl.replace("{$id}", "" + id)));
-        if (obj.isSuccess() && "成功".equals(obj.getMessage())) {
+        AYDResponse obj = AYDResponse.of(dataInfoUrl.replace("{$id}", "" + id).getUrlWithToken());
+        if (obj.isSuccess() && "成功".equals(obj.getMessage()) && obj.dataIsJsonObject()) {
             return GsonUtil.getGson().fromJson(obj.getData(), DataInfo.class);
         }
         return null;
@@ -179,16 +177,23 @@ public class StudentReader {
 
     public static List<StudentInfo> getAllStudents() {
         ArrayList<StudentInfo> list = new ArrayList<>();
-        AYDResponse obj = AYDResponse.of(AiyouduUtil.postUrlWithToken(SearchStudents.url, SearchStudents.of().setSize(100).toJsonStr(false)));
-        if (obj.isSuccess()) {
+        AYDResponse obj = AYDResponse.of(SearchStudents.url.postUrlWithToken(SearchStudents.of().setSize(100)));
+        if (obj.isSuccess() && obj.dataIsJsonObject()) {
             JsonArray students = obj.getDataAsJsonObject().getAsJsonArray("records");
             for (JsonElement student : students) {
+                if (!student.isJsonObject()) {
+                    LogUtil.logNecessary("该学生暂未摸底: " + student);
+                    continue;
+                }
                 StudentInfo info = GsonUtil.getGson().fromJson(student, StudentInfo.class);
                 AiyouduUtil.log.info("{} {} {}", info.getStudentId(), info.getRealName(), info.getGroup());
                 list.add(
                     info.setDataInfo(getStudentData(info.getStudentId()))
                         .setGroupId(info.getGroup() != null ? getGroupId(info.getGroup()) : info.getGroupId())
                 );
+                if (info.getDataInfo() == null) {
+                    LogUtil.logNecessary("该学生暂未摸底: " + info.getRealName());
+                }
                 try {
                     Thread.sleep(1500);  //等1.5秒
                 } catch (InterruptedException e) {
@@ -202,7 +207,7 @@ public class StudentReader {
 
     public static void freshGroups() {
         groupIdByName.clear();
-        AYDResponse response = AYDResponse.of(AiyouduUtil.getUrlWithToken(GroupInfo.url));
+        AYDResponse response = AYDResponse.of(GroupInfo.url.getUrlWithToken());
         if (response.isSuccess()) {
             response.getData().getAsJsonArray().asList().stream()
                 .map(e -> GsonUtil.getGson().fromJson(e, GroupInfo.class))

@@ -17,103 +17,66 @@ public class AiyouduUtil {
     // 保存 cookies 用于 API 请求
     private static Map<String, String> savedCookies = new HashMap<>();
 
-    public static String getUrlWithToken(String apiUrl) {
-        try {
-            // 创建 HttpClient 实例
-            HttpClient client = HttpClient.newHttpClient();
-
-            log.info("正在发送 GET 请求到：{}", apiUrl);
-
-            HttpRequest request = createRequest(apiUrl).GET().build();
-
-            // 发送请求并获取响应
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-            // 检查响应状态码
-            int statusCode = response.statusCode();
-            String responseBody = response.body();
-
-            if (statusCode == 200) {
-                log.info("√ API 请求成功！");
-                if (Main.debug) log.info("响应数据：{}", responseBody);
-                return responseBody;
-                // 可以在这里解析 JSON 响应
-            } else {
-                log.error("✗ API 请求失败，状态码：{}", statusCode);
-                log.error("响应内容：{}", responseBody);
-
-                // 如果返回 token 过期，尝试使用 Cookie 认证
-                if (responseBody.contains("token 过期") || responseBody.contains("unauthorized")) {
-                    log.warn(" Token 可能已过期或无效");
-                }
-            }
-
-        } catch (Exception e) {
-            log.error("访问 API 时发生错误：", e);
-        }
-        return "";
+    public static boolean hasToken() {
+        return token != null && !token.isEmpty();
     }
 
-    /**
-     * 发送 POST 请求并携带 Token 和 Cookie
-     *
-     * @param apiUrl      API URL
-     * @param postContent POST 的请求体内容（JSON 格式）
-     * @return 响应结果
-     */
+    public static String getUrlWithToken(String apiUrl) {
+        return accessUrlWithToken("GET", apiUrl, null);
+    }
+
     public static String postUrlWithToken(String apiUrl, String postContent) {
-        try {
-            log.info("正在发送 POST 请求到：{}", apiUrl);
-            if (Main.debug) {
-                log.info("POST 内容：{}", postContent);
-            }
-            // 创建 HttpClient 实例
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = createRequest(apiUrl).POST(HttpRequest.BodyPublishers.ofString(postContent)).build();
-            // 发送请求并获取响应
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            // 检查响应状态码
-            int statusCode = response.statusCode();
-            String responseBody = response.body();
-            if (statusCode == 200) {
-                log.info("√ POST 请求成功！");
-                if (Main.debug) log.info("响应数据：{}", responseBody);
-                return responseBody;
-            } else {
-                log.error("✗ POST 请求失败，状态码：{}", statusCode);
-                log.error("响应内容：{}", responseBody);
-
-                // 如果返回 token 过期，尝试使用 Cookie 认证
-                if (responseBody.contains("token 过期") || responseBody.contains("unauthorized")) {
-                    log.warn(" Token 可能已过期或无效");
-                }
-            }
-
-        } catch (Exception e) {
-            log.error("访问 API 时发生错误：", e);
-        }
-        return "";
+        return accessUrlWithToken("POST", apiUrl, postContent);
     }
 
     public static String putUrlWithToken(String apiUrl, String putContent) {
+        return accessUrlWithToken("PUT", apiUrl, putContent);
+    }
+
+    public static String postUrlWithToken(String apiUrl, Object postObj) {
+        return postUrlWithToken(apiUrl, GsonUtil.toJsonStr(postObj, false));
+    }
+
+    public static String putUrlWithToken(String apiUrl, Object putObj) {
+        return putUrlWithToken(apiUrl, GsonUtil.toJsonStr(putObj, false));
+    }
+
+    /**
+     * 发送 GET/POST/PUT 请求并携带 Token 和 Cookie
+     *
+     * @param method  请求方法：GET / POST / PUT
+     * @param apiUrl  API URL
+     * @param content 请求体内容（JSON 格式），GET 传 null
+     * @return 响应结果
+     */
+    private static String accessUrlWithToken(String method, String apiUrl, String content) {
         try {
-            log.info("正在发送 PUT 请求到：{}", apiUrl);
-            if (Main.debug) {
-                log.info("PUT 内容：{}", putContent);
+            log.info("正在发送 {} 请求到：{}", method, apiUrl);
+            if (Main.debug && content != null) {
+                log.info("{} 内容：{}", method, content);
             }
             // 创建 HttpClient 实例
             HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = createRequest(apiUrl).PUT(HttpRequest.BodyPublishers.ofString(putContent)).build();
+            HttpRequest request = switch (method) {
+                case "GET" -> createRequest(apiUrl).GET().build();
+                case "POST" -> createRequest(apiUrl).POST(HttpRequest.BodyPublishers.ofString(content)).build();
+                case "PUT" -> createRequest(apiUrl).PUT(HttpRequest.BodyPublishers.ofString(content)).build();
+                default -> throw new IllegalArgumentException("不支持的请求方法：" + method);
+            };
+            // 发送请求并获取响应
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            // 检查响应状态码
             int statusCode = response.statusCode();
             String responseBody = response.body();
             if (statusCode == 200) {
-                log.info("√ PUT 请求成功！");
+                log.info("√ {} 请求成功！", method);
+                if (Main.debug) log.info("响应数据：{}", responseBody);
                 return responseBody;
             } else {
-                log.error("✗ PUT 请求失败，状态码：{}", statusCode);
+                log.error("✗ {} 请求失败，状态码：{}", method, statusCode);
                 log.error("响应内容：{}", responseBody);
 
+                // 如果返回 token 过期，尝试使用 Cookie 认证
                 if (responseBody.contains("token 过期") || responseBody.contains("unauthorized")) {
                     log.warn(" Token 可能已过期或无效");
                 }

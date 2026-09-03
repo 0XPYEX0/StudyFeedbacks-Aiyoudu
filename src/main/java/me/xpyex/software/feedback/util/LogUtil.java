@@ -1,21 +1,23 @@
 package me.xpyex.software.feedback.util;
 
-import java.util.WeakHashMap;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import java.text.MessageFormat;
 import javax.swing.JOptionPane;
 import me.xpyex.software.feedback.ui.MainWindow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LogUtil {
-    private static final WeakHashMap<String, Logger> LOGGER_MAP = new WeakHashMap<>();
+    private static final Cache<String, Logger> LOGGER_MAP = CacheBuilder.newBuilder().build();
     private static final int lineLength = 40;
 
     public static Logger getLogger() {
         String name = getCallerName();
-        if (!LOGGER_MAP.containsKey(name)) {
+        if (!LOGGER_MAP.asMap().containsKey(name)) {
             LOGGER_MAP.put(name, LoggerFactory.getLogger(name));
         }
-        return LOGGER_MAP.get(name);
+        return LOGGER_MAP.getIfPresent(name);
     }
 
     private static String getCallerName() {
@@ -47,11 +49,10 @@ public class LogUtil {
         getLogger().info(sign.repeat(Math.max(0, length)));
     }
 
-    public static void logNecessary(String msg) {
+    public static void logNecessary(String msg, Object... objects) {
+        getLogger().info(msg, objects);
         if (MainWindow.current != null) {
-            MainWindow.current.log("[" + getCallerName() + "] " + msg);
-        } else {
-            getLogger().info(msg);
+            MainWindow.current.log("[" + getCallerName() + "] " + MessageFormat.format(msg, objects));
         }
     }
 

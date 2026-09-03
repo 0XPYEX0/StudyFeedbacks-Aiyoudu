@@ -3,6 +3,7 @@ package me.xpyex.software.feedback.tasks;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Setter;
@@ -13,6 +14,7 @@ import me.xpyex.software.feedback.packet.in.SinglePanel;
 import me.xpyex.software.feedback.packet.util.StudyContentsUtil;
 import me.xpyex.software.feedback.util.AiyouduUtil;
 import me.xpyex.software.feedback.util.GsonUtil;
+import me.xpyex.software.feedback.util.LogUtil;
 import me.xpyex.software.feedback.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,11 +33,17 @@ public class StudentInfoCollector {
         ♦️【累计学情数据】
              摸底词汇: {$vocabularyStart}个
              当前词汇: {$vocabulary}个
+             现阅读力: 
         📚词汇部分
              学习词汇: {$studyWord}个
              测试词汇: {$checkWord}个
              词汇增长: {$increaseWord}个
              复习词汇: {$reviewWord}个
+          短语部分
+             摸底短语: {$phraseStart}个
+             当前短语: {$phraseNum}个
+             学习短语: {$studyPhrase}个
+             短语增长: 
         """;
     private static final String panelInfo = """
         {$icon}{$task}
@@ -98,18 +106,18 @@ public class StudentInfoCollector {
             List<StudentInfo> validStudents = getValidStudentsWithGroup();
 
             if (validStudents.isEmpty()) {
-                log.warn("未找到任何有 group 值的学生");
+                LogUtil.logNecessary("未找到任何有 group 值的学生");
                 return;
             }
 
-            log.info("找到 {} 个有 group 值的学生", validStudents.size());
+            LogUtil.logNecessary(MessageFormat.format("找到 {} 个有 group 值的学生", validStudents.size()));
 
             // 步骤 3: 逐个获取学生信息和周报
             collectStudentInfos(validStudents);
 
-            log.info("========================================");
-            log.info("   所有学生信息采集完成！");
-            log.info("========================================");
+            LogUtil.logNecessary("========================================");
+            LogUtil.logNecessary("   所有学生信息采集完成！");
+            LogUtil.logNecessary("========================================");
 
         } catch (Exception e) {
             log.error("采集过程中发生错误：", e);

@@ -8,6 +8,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,8 +87,13 @@ public abstract class BaseStudentSelectionDialog extends JDialog {
         studentCheckBoxes.clear();
         Map<Integer, StudentInfo> allStudents = StudentReader.copyStudents();
 
+        // 按年级排序，再按姓名排序
+        List<Map.Entry<Integer, StudentInfo>> sortedEntries = new ArrayList<>(allStudents.entrySet());
+        sortedEntries.sort(Comparator.comparingInt((Map.Entry<Integer, StudentInfo> e) -> e.getValue().getGrade())
+                               .thenComparing(e -> e.getValue().getRealName()));
+
         int row = 0;
-        for (Map.Entry<Integer, StudentInfo> entry : allStudents.entrySet()) {
+        for (Map.Entry<Integer, StudentInfo> entry : sortedEntries) {
             StudentInfo student = entry.getValue();
             int studentId = student.getStudentId();
 
@@ -203,8 +209,9 @@ public abstract class BaseStudentSelectionDialog extends JDialog {
      * 格式化学生信息显示（子类可重写）
      */
     protected String formatStudentInfo(StudentInfo student) {
-        return String.format("%-10s [ID:%d] - %s",
+        return String.format("%-10s [%s] [ID:%d] - %s",
             student.getRealName(),
+            student.getGradeValue(),
             student.getStudentId(),
             student.getGroup());
     }

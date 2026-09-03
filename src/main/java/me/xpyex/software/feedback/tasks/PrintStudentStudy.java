@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.experimental.ExtensionMethod;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.packet.in.AYDResponse;
 import me.xpyex.software.feedback.packet.in.StudyContentInfo;
@@ -36,6 +37,7 @@ import org.slf4j.LoggerFactory;
  * 5. 根据配置文件打印篇数
  * 6. 执行退费（退掉刚续的一个月）
  */
+@ExtensionMethod(AiyouduUtil.class)
 public class PrintStudentStudy {
     // 配置文件路径
     public static final String CONFIG_FILE_PATH = "config/print.json";
@@ -308,14 +310,9 @@ public class PrintStudentStudy {
             RecoverDay recoverDay = RecoverDay.of()
                                         .setStudentId(student.getStudentId())
                                         .setDay(expireDay);
+            AYDResponse response = AYDResponse.of(AiyouduUtil.apiUrl + "platform/change/studentRecoverDay".postUrlWithToken(recoverDay));
 
-            String requestJson = GsonUtil.toJsonStr(recoverDay, false);
-            String response = AiyouduUtil.postUrlWithToken(
-                AiyouduUtil.apiUrl + "platform/change/studentRecoverDay",
-                requestJson
-            );
-
-            if (response != null && !response.isEmpty()) {
+            if (response != null && response.isSuccess()) {
                 log.info("  √ 退费请求已发送");
             } else {
                 log.warn("  ! 退费响应为空，可能失败");
@@ -363,14 +360,11 @@ public class PrintStudentStudy {
         log.info("  学生：{}, 打印篇数：{}", studentName, totalArticles);
 
         String originClassName = student.getClassName();
-        AYDResponse response1 = AYDResponse.of(
-            AiyouduUtil.putUrlWithToken(StudentInfo.updateUrl,
-                GsonUtil.toJsonStr(
-                    student
-                        .setClassName(student.getGroup())
-                        .setCardType(StudentInfo.CardType.IN_MONTHS.getCardType())
-                        .setBillingType(0),  // 此处已经续费完月度卡，所以卡片类型必定是月度
-                    false)));
+        AYDResponse response1 = AYDResponse.of(StudentInfo.updateUrl.putUrlWithToken(student
+                                                                                         .setClassName(student.getGroup())
+                                                                                         .setCardType(StudentInfo.CardType.IN_MONTHS.getCardType())
+                                                                                         .setBillingType(0)  // 此处已经续费完月度卡，所以卡片类型必定是月度
+        ));
         if (response1.isSuccess()) {
             log.info("  √ 临时修改班级请求成功");
         } else {
@@ -391,15 +385,10 @@ public class PrintStudentStudy {
         // 打印完整份数（每份 2 篇）
         for (int i = 0; i < fullCopies; i++) {
             PrintStudy printPacket = PrintStudy.of().setStudentId(student.getStudentId()).setArticleNum(2);  // 每份 2 篇
-
-            String requestJson = GsonUtil.toJsonStr(printPacket, false);
-            AYDResponse response = AYDResponse.of(AiyouduUtil.postUrlWithToken(PrintStudy.url, requestJson));
+            AYDResponse response = AYDResponse.of(PrintStudy.url.postUrlWithToken(printPacket));
 
             if (response.isSuccess()) {
                 log.info("  √ 已生成第 {} 份 (2 篇)", i + 1);
-
-                // 下载 PDF 文件
-                // downloadPdfFromResponse(response, student);
             }
 
             // 短暂延迟
@@ -409,39 +398,37 @@ public class PrintStudentStudy {
         // 如果有剩余，打印只有 1 篇的那份
         if (remainder > 0) {
             PrintStudy printPacket = PrintStudy.of().setStudentId(student.getStudentId()).setArticleNum(1);  // 每份 1 篇
-
-            String requestJson = GsonUtil.toJsonStr(printPacket, false);
-            AYDResponse response = AYDResponse.of(AiyouduUtil.postUrlWithToken(PrintStudy.url, requestJson));
+            AYDResponse response = AYDResponse.of(PrintStudy.url.postUrlWithToken(printPacket));
 
             if (response.isSuccess()) {
                 log.info("  √ 已生成最后 1 份 ({} 篇)", remainder);
-                // 下载 PDF 文件
-                // downloadPdfFromResponse(response, student);
             }
         }
 
-        Set<Integer> ids = StudyContentsUtil.getStudyContents(AYDResponse.of(AiyouduUtil.getUrlWithToken(
-                StudyContentsUtil.getPrintUrl(student, StudyContentsUtil.FinishedType.NOT_FINISHED, StudyContentsUtil.StudyType.NORMAL_READ, totalArticles, null)
-            ))).stream()
+        Set<Integer> ids = StudyContentsUtil.getStudyContents(AYDResponse.of(
+                StudyContentsUtil.getPrintUrl(student,
+                    StudyContentsUtil.FinishedType.NOT_FINISHED,
+                    StudyContentsUtil.StudyType.NORMAL_READ,
+                    totalArticles,
+                    null
+                ).getUrlWithToken()
+            )).stream()
                                .map(StudyContentInfo::getPrintId)
                                .collect(Collectors.toSet());
-        AYDResponse response = AYDResponse.of(AiyouduUtil.postUrlWithToken(PrintMerge.url, GsonUtil.toJsonStr(PrintMerge.of().addAll(ids), false)));
+        AYDResponse response = AYDResponse.of(PrintMerge.url.postUrlWithToken(PrintMerge.of().addAll(ids)));
         if (response.isSuccess()) {
             log.info("  √ 学案已合并完成，开始下载");
             downloadPdf(response.getData().getAsString(), student);
         }
 
-
         log.info("  √ 打印完成，共合并 {} 份，总计 {} 篇",
             fullCopies + (remainder > 0 ? 1 : 0), totalArticles);
 
-        AYDResponse response2 = AYDResponse.of(
-            AiyouduUtil.putUrlWithToken(StudentInfo.updateUrl,
-                GsonUtil.toJsonStr(student
-                                       .setClassName(originClassName)
-                                       .setCardType(StudentInfo.CardType.IN_MONTHS.getCardType())
-                                       .setBillingType(0),  // 此处已经续费完月度卡，所以卡片类型必定是月度
-                    false)));
+        AYDResponse response2 = AYDResponse.of(StudentInfo.updateUrl.putUrlWithToken(student
+                                                                                         .setClassName(originClassName)
+                                                                                         .setCardType(StudentInfo.CardType.IN_MONTHS.getCardType())
+                                                                                         .setBillingType(0)  // 此处已经续费完月度卡，所以卡片类型必定是月度
+        ));
         if (response2.isSuccess()) {
             log.info("  √ 已恢复原班级");
         } else {

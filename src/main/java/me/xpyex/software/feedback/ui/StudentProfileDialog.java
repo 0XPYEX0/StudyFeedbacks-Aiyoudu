@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -50,7 +51,7 @@ public class StudentProfileDialog extends BaseStudentSelectionDialog {
 
     @Override
     protected String formatStudentInfo(StudentInfo student) {
-        return String.format("%-10s [%s]", student.getRealName(), student.getGroup());
+        return String.format("%-10s [%s] [%s]", student.getRealName(), student.getGradeValue(), student.getGroup());
     }
 
     @Override
@@ -150,9 +151,9 @@ public class StudentProfileDialog extends BaseStudentSelectionDialog {
 
     private void showBatchSetDateDialog() {
         JTextField startInput = new JTextField(
-            LocalDate.now().minusWeeks(1).with(java.time.DayOfWeek.MONDAY).format(DATE_FORMATTER), 10);
+            LocalDate.now().minusWeeks(1).with(DayOfWeek.MONDAY).format(DATE_FORMATTER), 10);
         JTextField endInput = new JTextField(
-            LocalDate.now().minusWeeks(1).with(java.time.DayOfWeek.SUNDAY).format(DATE_FORMATTER), 10);
+            LocalDate.now().minusWeeks(1).with(DayOfWeek.SUNDAY).format(DATE_FORMATTER), 10);
 
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
         panel.add(new JLabel("开始日期："));
@@ -173,9 +174,9 @@ public class StudentProfileDialog extends BaseStudentSelectionDialog {
                 LocalDate.parse(endStr, DATE_FORMATTER);
 
                 int count = 0;
-                for (int i = 0; i < studentCheckBoxes.size(); i++) {
-                    if (studentCheckBoxes.get(i).isSelected()) {
-                        Integer studentId = checkBoxToStudentId.get(studentCheckBoxes.get(i));
+                for (JCheckBox studentCheckBox : studentCheckBoxes) {
+                    if (studentCheckBox.isSelected()) {
+                        Integer studentId = checkBoxToStudentId.get(studentCheckBox);
                         if (studentId != null) {
                             JTextField startDateField = startDateFields.get(studentId);
                             JTextField endDateField = endDateFields.get(studentId);

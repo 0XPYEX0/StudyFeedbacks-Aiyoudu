@@ -52,7 +52,7 @@ public class StudentPrintDialog extends BaseStudentSelectionDialog {
 
     @Override
     protected String formatStudentInfo(StudentInfo student) {
-        return String.format("%-10s [%s]", student.getRealName(), student.getGroup());
+        return String.format("%-10s [%s] [%s]", student.getRealName(), student.getGradeValue(), student.getGroup());
     }
 
     @Override

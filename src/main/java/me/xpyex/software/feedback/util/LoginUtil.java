@@ -2,6 +2,7 @@ package me.xpyex.software.feedback.util;
 
 import io.github.bonigarcia.wdm.WebDriverManager;
 import java.io.File;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -58,7 +59,7 @@ public class LoginUtil {
         // 创建 Edge 浏览器实例
         try {
             driver = new EdgeDriver();
-            wait = new WebDriverWait(driver, 120);
+            wait = new WebDriverWait(driver, Duration.ofSeconds(120));
         } catch (SessionNotCreatedException e) {
             if (e.getMessage().contains("version")) {
                 System.out.println("当前EdgeWebDriver与Edge版本不匹配，已结束进程，尝试自动下载。若无效请尝试手动下载");

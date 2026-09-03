@@ -15,9 +15,14 @@ public class StudyContentsUtil {
     // articleId为文章ID，搜索时需要提供
     // studyType为完成情况，按照FinishedType枚举的ID操作
     // readType是文章类型，按照StudyType枚举的ID操作
-    public static final String PRINT_URL = AiyouduUtil.apiUrl + "student/study/applySupervisionPage?"
-                                               + "article={$article}" + "&" + "studyType={$finishedType}" + "&" + "readType={$studyType}" + "&"
-                                               + "current=1&size={$amount}" + "&" + "studentId={$id}";
+    public static final String PRINT_URL =
+        AiyouduUtil.apiUrl + "student/study/applySupervisionPage?" + String.join("&",
+            "article={$article}",
+            "studyType={$finishedType}",
+            "readType={$studyType}",
+            "current=1&size={$amount}",
+            "studentId={$id}"
+        );
 
     public static String getPrintUrl(long studentId, FinishedType finishedType, StudyType studyType, int amount, Integer articleId) {
         return PRINT_URL.replace("{$article}", articleId == null ? "" : articleId + "")

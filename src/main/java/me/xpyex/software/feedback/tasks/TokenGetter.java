@@ -1,7 +1,7 @@
 package me.xpyex.software.feedback.tasks;
 
-import me.xpyex.software.feedback.ui.MainWindow;
 import me.xpyex.software.feedback.util.AiyouduUtil;
+import me.xpyex.software.feedback.util.LogUtil;
 import me.xpyex.software.feedback.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +23,7 @@ public class TokenGetter {
 
         try {
             // 检查是否已有 Token
-            if (AiyouduUtil.token != null && !AiyouduUtil.token.isEmpty()) {
+            if (AiyouduUtil.hasToken()) {
                 log.info("√ 已存在有效 Token，跳过登录");
                 log.info("当前 Token: {}...", AiyouduUtil.token.substring(0, Math.min(20, AiyouduUtil.token.length())));
                 return;
@@ -35,7 +35,7 @@ public class TokenGetter {
 
             AiyouduUtil.loginUsingBrowser();
 
-            while (AiyouduUtil.token == null || AiyouduUtil.token.isEmpty()) {
+            while (!AiyouduUtil.hasToken()) {
                 log.info("等待 Token...");
                 if (TimeUtil.sleep(2000) != null) {
                     log.error("等待被中断");
@@ -43,23 +43,11 @@ public class TokenGetter {
                 }
             }
 
-            if (MainWindow.current != null) {
-                MainWindow.current.log("√ 登录成功！Token 已获取");
-            }
-            log.info("√ 登录成功！Token 已获取");
+            LogUtil.logNecessary("√ 登录成功！Token 已获取");
             log.info("Token: {}...", AiyouduUtil.token.substring(0, Math.min(20, AiyouduUtil.token.length())));
 
         } catch (Exception e) {
             log.error("获取 Token 过程中发生错误：", e);
         }
-    }
-
-    /**
-     * 检查是否已有有效 Token
-     *
-     * @return 如果已有 Token 返回 true
-     */
-    public static boolean hasToken() {
-        return AiyouduUtil.token != null && !AiyouduUtil.token.isEmpty();
     }
 }

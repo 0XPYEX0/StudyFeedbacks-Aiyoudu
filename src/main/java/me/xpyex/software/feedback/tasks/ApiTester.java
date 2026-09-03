@@ -15,7 +15,7 @@ public class ApiTester {
      */
     public static void getFromUrlTest(String url) {
         // 检查 Token 是否存在
-        if (AiyouduUtil.token == null || AiyouduUtil.token.isEmpty()) {
+        if (!AiyouduUtil.hasToken()) {
             System.out.println("⚠️  未检测到有效的 Token!");
             System.out.println("请先执行【0】getToken 操作获取 Token");
             return;
@@ -67,7 +67,7 @@ public class ApiTester {
      */
     public static void postToUrlTest(String url, String requestBody) {
         // 检查 Token 是否存在
-        if (AiyouduUtil.token == null || AiyouduUtil.token.isEmpty()) {
+        if (!AiyouduUtil.hasToken()) {
             System.out.println("⚠️  未检测到有效的 Token!");
             System.out.println("请先执行【0】getToken 操作获取 Token");
             return;
@@ -108,7 +108,6 @@ public class ApiTester {
             System.out.println("❌ 请求失败: " + e.getMessage());
             e.printStackTrace();
         }
-
         System.out.println("========================================\n");
     }
 }

@@ -65,10 +65,19 @@ public class RenewStudentDialog extends BaseStudentSelectionDialog {
 
     @Override
     protected String formatStudentInfo(StudentInfo student) {
-        String cardType = student.getCardType() == StudentInfo.CardType.IN_DAYS.getCardType() ? "天卡" : "月卡";
+        String cardType;
+        if (student.getCardType() == StudentInfo.CardType.IN_TRIAL.getCardType()) {
+            cardType = "体验卡";
+        } else if (student.getCardType() == StudentInfo.CardType.IN_MONTHS.getCardType()) {
+            cardType = "月卡";
+        } else if (student.getCardType() == StudentInfo.CardType.IN_DAYS.getCardType()) {
+            cardType = "包月卡";
+        } else {
+            cardType = "未知";
+        }
         int expireDay = student.getExpireDay();
-        return String.format("%-10s [%s] %s 剩余%d天",
-            student.getRealName(), student.getGroup(), cardType, expireDay);
+        return String.format("%-10s [%s] [%s] %s 剩余%d天",
+            student.getRealName(), student.getGradeValue(), student.getGroup(), cardType, expireDay);
     }
 
     @Override
