@@ -56,7 +56,10 @@ public class StudentInfoCollector {
     };
     // 每个学生的操作间隔时间（秒）
     private static final int SLEEP_SECONDS_BETWEEN_STUDENTS = 5;
-    private static final String getProfileDateUrl = AiyouduUtil.apiUrl + "organiztion/student/myMonthData?studentId={$id}&startDate={$start}&endDate={$end}";
+    private static final String getProfileDateUrl = AiyouduUtil.orgUrl + "student/myMonthData" +
+                                                        "?studentId={$id}" +
+                                                        "&startDate={$start}" +
+                                                        "&endDate={$end}";
     @Setter
     public static String end;
     @Setter

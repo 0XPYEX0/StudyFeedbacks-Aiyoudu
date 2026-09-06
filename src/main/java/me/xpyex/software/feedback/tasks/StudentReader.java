@@ -37,7 +37,7 @@ public class StudentReader {
      */
     private static final Map<Integer, StudentInfo> studentMap = new ConcurrentHashMap<>();
     private static final Map<String, Integer> groupIdByName = new ConcurrentHashMap<>();
-    private static final String dataInfoUrl = AiyouduUtil.apiUrl + "organiztion/student/dataInfo?studentId={$id}";
+    private static final String dataInfoUrl = AiyouduUtil.orgUrl + "student/dataInfo?studentId={$id}";
 
     /**
      * 启动学生读取流程

@@ -46,7 +46,7 @@ public class LogUtil {
 
     public static void line(String sign, int length) {
         if (sign == null || sign.trim().isEmpty()) return;
-        getLogger().info(sign.repeat(Math.max(0, length)));
+        logNecessary(sign.repeat(Math.max(0, length)));
     }
 
     public static void logNecessary(String msg, Object... objects) {

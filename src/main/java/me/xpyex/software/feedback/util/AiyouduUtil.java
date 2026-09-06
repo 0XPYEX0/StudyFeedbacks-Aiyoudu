@@ -13,9 +13,9 @@ public class AiyouduUtil {
     public static final Logger log = LogUtil.getLogger();
     public static final String rootUrl = "https://group.aiyoudu.cn/";
     public static final String apiUrl = rootUrl + "api2/";
+    public static final String orgUrl = apiUrl + "organiztion/";  // 这草台班子拼错的
     public static String token = null;
-    // 保存 cookies 用于 API 请求
-    private static Map<String, String> savedCookies = new HashMap<>();
+    private static Map<String, String> savedCookies = new HashMap<>();  // 保存 cookies 用于 API 请求
 
     public static boolean hasToken() {
         return token != null && !token.isEmpty();
@@ -57,7 +57,7 @@ public class AiyouduUtil {
             }
             // 创建 HttpClient 实例
             HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = switch (method) {
+            HttpRequest request = switch (method.toUpperCase()) {
                 case "GET" -> createRequest(apiUrl).GET().build();
                 case "POST" -> createRequest(apiUrl).POST(HttpRequest.BodyPublishers.ofString(content)).build();
                 case "PUT" -> createRequest(apiUrl).PUT(HttpRequest.BodyPublishers.ofString(content)).build();

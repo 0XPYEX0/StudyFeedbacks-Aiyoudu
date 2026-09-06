@@ -13,7 +13,7 @@ import me.xpyex.software.feedback.util.AiyouduUtil;
 @Accessors(chain = true)
 @NoArgsConstructor(staticName = "of")
 public class SearchStudents extends AYDPacket {
-    public static final String url = AiyouduUtil.apiUrl + "organiztion/student/page";
+    public static final String url = AiyouduUtil.orgUrl + "student/page";
 
     private int current = 1;  // 当前页数
     private int size;  // 单页显示几个学生

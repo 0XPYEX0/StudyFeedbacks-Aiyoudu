@@ -10,7 +10,7 @@ import me.xpyex.software.feedback.util.AiyouduUtil;
 @Accessors(chain = true)
 @NoArgsConstructor(staticName = "of")
 public class RecoverMonth extends AYDPacket {
-    public static final String url = AiyouduUtil.apiUrl + "organiztion/student/studentRefund";
+    public static final String url = AiyouduUtil.orgUrl + "student/studentRefund";
     private int month;
     private int studentId;
 }

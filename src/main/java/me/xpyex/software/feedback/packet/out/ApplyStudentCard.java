@@ -15,7 +15,7 @@ import me.xpyex.software.feedback.util.AiyouduUtil;
 // 续费
 public class ApplyStudentCard extends AYDPacket {
     //  https://group.aiyoudu.cn/api2/organiztion/student/studentApply
-    public static final String url = AiyouduUtil.apiUrl + "organiztion/student/studentApply";
+    public static final String url = AiyouduUtil.orgUrl + "student/studentApply";
     private int studentId;
     private int applyType;  //目前已知，1是月，4是天
     private int curriculumCardId;  //目前已知，14代表天，23代表月

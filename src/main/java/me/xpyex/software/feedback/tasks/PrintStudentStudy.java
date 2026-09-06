@@ -415,24 +415,27 @@ public class PrintStudentStudy {
             )).stream()
                                .map(StudyContentInfo::getPrintId)
                                .collect(Collectors.toSet());
-        AYDResponse response = AYDResponse.of(PrintMerge.url.postUrlWithToken(PrintMerge.of().addAll(ids)));
-        if (response.isSuccess()) {
+        AYDResponse pdfLink = AYDResponse.of(PrintMerge.url.postUrlWithToken(PrintMerge.of().addAll(ids)));
+        if (pdfLink.isSuccess()) {
             log.info("  √ 学案已合并完成，开始下载");
-            downloadPdf(response.getData().getAsString(), student);
+            downloadPdf(pdfLink.getData().getAsString(), student);
         }
 
         log.info("  √ 打印完成，共合并 {} 份，总计 {} 篇",
             fullCopies + (remainder > 0 ? 1 : 0), totalArticles);
 
-        AYDResponse response2 = AYDResponse.of(StudentInfo.updateUrl.putUrlWithToken(student
-                                                                                         .setClassName(originClassName)
-                                                                                         .setCardType(StudentInfo.CardType.IN_MONTHS.getCardType())
-                                                                                         .setBillingType(0)  // 此处已经续费完月度卡，所以卡片类型必定是月度
-        ));
-        if (response2.isSuccess()) {
+        AYDResponse changeClassResponse = AYDResponse.of(
+            StudentInfo.updateUrl.putUrlWithToken(
+                student
+                    .setClassName(originClassName)
+                    .setCardType(StudentInfo.CardType.IN_MONTHS.getCardType())
+                    .setBillingType(0)  // 此处已经续费完月度卡，所以卡片类型必定是月度
+            )
+        );
+        if (changeClassResponse.isSuccess()) {
             log.info("  √ 已恢复原班级");
         } else {
-            log.warn("  ! 恢复班级失败: {}", response2.getMessage());
+            log.warn("  ! 恢复班级失败: {}", changeClassResponse.getMessage());
         }
     }
 
