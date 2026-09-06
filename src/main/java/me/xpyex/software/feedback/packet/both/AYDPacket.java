@@ -11,6 +11,6 @@ public abstract class AYDPacket {
     }
 
     public AYDResponse sendToUrl() {
-        return null;
+        throw new UnsupportedOperationException("该方法体未实现");
     }
 }

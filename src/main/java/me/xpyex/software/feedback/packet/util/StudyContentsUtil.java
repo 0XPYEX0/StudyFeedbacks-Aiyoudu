@@ -80,13 +80,15 @@ public class StudyContentsUtil {
 
     @AllArgsConstructor
     public enum StudyType {
-        NORMAL_READ(1),  // 精准读阅读
-        CHOOSE_FIVE_FROM_SEVEN(4),  // 七选五
-        COMPLETION(5);  // 完形填空
+        NORMAL_READ(1, "精准阅读"),
+        CHOOSE_FIVE_FROM_SEVEN(4, "七选五"),
+        COMPLETION(5, "完形填空");  // 完形填空
         //有其它的，我们暂时不需要处理，人工操作就行
 
         @Getter
-        private final int id;
+        private int id;
+        @Getter
+        private String name;
 
         public static StudyType getStudyTypeByName(String name) {
             if (name.contains("精准")) {

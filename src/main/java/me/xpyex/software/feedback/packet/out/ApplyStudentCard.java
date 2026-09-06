@@ -5,12 +5,14 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import lombok.experimental.ExtensionMethod;
 import me.xpyex.software.feedback.packet.both.AYDPacket;
 import me.xpyex.software.feedback.packet.in.AYDResponse;
 import me.xpyex.software.feedback.util.AiyouduUtil;
 
 @Data
 @Accessors(chain = true)
+@ExtensionMethod(AiyouduUtil.class)
 @NoArgsConstructor(staticName = "of")
 // 续费
 public class ApplyStudentCard extends AYDPacket {
@@ -39,7 +41,7 @@ public class ApplyStudentCard extends AYDPacket {
 
     @Override
     public AYDResponse sendToUrl() {
-        return AYDResponse.of(AiyouduUtil.postUrlWithToken(url, this.toJsonStr(false)));
+        return AYDResponse.of(url.postUrlWithToken(this));
     }
 
     @Getter

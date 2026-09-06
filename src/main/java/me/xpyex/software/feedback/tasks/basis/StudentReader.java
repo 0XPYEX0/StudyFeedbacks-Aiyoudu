@@ -1,10 +1,7 @@
-package me.xpyex.software.feedback.tasks;
+package me.xpyex.software.feedback.tasks.basis;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -61,9 +58,6 @@ public class StudentReader {
             log.info("========================================");
             log.info("   学生读取完成！共保存 {} 个学生", studentMap.size());
             log.info("========================================");
-
-            // 步骤 3: 检查并创建 print.json 配置文件
-            checkAndCreatePrintConfig();
 
         } catch (Exception e) {
             log.error("读取学生过程中发生错误：", e);
@@ -133,37 +127,13 @@ public class StudentReader {
     }
 
     /**
-     * 步骤 3: 检查并创建 print.json 配置文件
+     * 更新内存中的学生信息（用修改后的对象替换旧记录），供「修改信息」成功后刷新使用
+     *
+     * @param student 修改后的学生信息
      */
-    private static void checkAndCreatePrintConfig() {
-        File configFile = new File("config/print.json");
-
-        if (!configFile.exists()) {
-            log.info(">>> config/print.json 不存在，正在创建默认配置文件...");
-
-            try {
-                // 创建父目录（如果不存在）
-                File parentDir = configFile.getParentFile();
-                if (parentDir != null && !parentDir.exists()) {
-                    parentDir.mkdirs();
-                }
-
-                // 创建默认配置内容
-                String defaultContent = "{\"name\": 2, \"name2\": 2}";
-
-                // 写入文件
-                try (FileWriter writer = new FileWriter(configFile)) {
-                    writer.write(defaultContent);
-                }
-
-                log.info("√ 默认配置文件已创建：config/print.json");
-                log.info("  内容：{}", defaultContent);
-
-            } catch (IOException e) {
-                log.error("创建配置文件失败：", e);
-            }
-        } else {
-            log.debug("config/print.json 已存在，跳过创建");
+    public static void updateStudent(StudentInfo student) {
+        if (student != null) {
+            studentMap.put(student.getStudentId(), student);
         }
     }
 

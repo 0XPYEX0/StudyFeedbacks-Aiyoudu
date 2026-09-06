@@ -1,17 +1,20 @@
-package me.xpyex.software.feedback.tasks;
+package me.xpyex.software.feedback.tasks.studyPrepare;
 
 import com.google.gson.JsonObject;
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.experimental.ExtensionMethod;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.packet.in.AYDResponse;
 import me.xpyex.software.feedback.packet.out.ApplyStudentCard;
 import me.xpyex.software.feedback.packet.out.RecoverMonth;
+import me.xpyex.software.feedback.tasks.basis.StudentReader;
 import me.xpyex.software.feedback.util.AiyouduUtil;
 import me.xpyex.software.feedback.util.ConfigManager;
 import me.xpyex.software.feedback.util.LogUtil;
 import org.slf4j.Logger;
 
+@ExtensionMethod(AiyouduUtil.class)
 public class RenewStudentCard {
     public static Logger log = LogUtil.getLogger();
 
@@ -57,7 +60,7 @@ public class RenewStudentCard {
                         if (student.getExpireDay() >= 30) {
                             int month = student.getExpireDay() / 30;
                             if (student.getExpireDay() - month * 30 == 0) {
-                                RecoverMonth.of().setStudentId(student.getStudentId()).setMonth(month).sendToUrl();
+                                RecoverMonth.url.postUrlWithToken(RecoverMonth.of().setStudentId(student.getStudentId()).setMonth(month));
                                 LogUtil.logNecessary("学生 " + student.getRealName() + " 的学生卡是月度卡，已退费");
                             } else {
                                 LogUtil.logNecessary("学生 " + student.getRealName() + " 的学生卡是月度卡，且无法退费，已跳过此学生");

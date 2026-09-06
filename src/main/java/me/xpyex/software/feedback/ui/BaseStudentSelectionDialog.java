@@ -26,7 +26,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
-import me.xpyex.software.feedback.tasks.StudentReader;
+import me.xpyex.software.feedback.tasks.basis.StudentReader;
 
 /**
  * 学生选择对话框抽象基类

@@ -3,104 +3,98 @@ package me.xpyex.software.feedback.ui;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+import java.awt.GridLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
+import javax.swing.JTabbedPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-import javax.swing.border.EmptyBorder;
-import me.xpyex.software.feedback.tasks.DeepSeekAnalyzer;
-import me.xpyex.software.feedback.tasks.PrintStudentStudy;
-import me.xpyex.software.feedback.tasks.RenewStudentCard;
-import me.xpyex.software.feedback.tasks.StudentInfoCollector;
-import me.xpyex.software.feedback.tasks.StudentReader;
-import me.xpyex.software.feedback.tasks.TokenGetter;
+import me.xpyex.software.feedback.data.StudentSchedule;
+import me.xpyex.software.feedback.packet.both.StudentInfo;
+import me.xpyex.software.feedback.schedule.ScheduleManager;
+import me.xpyex.software.feedback.schedule.StudentGroupManager;
+import me.xpyex.software.feedback.tasks.basis.StudentReader;
+import me.xpyex.software.feedback.tasks.basis.TokenGetter;
+import me.xpyex.software.feedback.tasks.feedback.DeepSeekAnalyzer;
+import me.xpyex.software.feedback.tasks.feedback.StudentInfoCollector;
+import me.xpyex.software.feedback.tasks.studyPrepare.PrintStudentStudy;
+import me.xpyex.software.feedback.tasks.studyPrepare.RenewStudentCard;
 import me.xpyex.software.feedback.util.NetworkUtil;
 import me.xpyex.software.feedback.util.TaskExecutor;
 import me.xpyex.software.feedback.util.TimeUtil;
 
 /**
- * 主窗口类 - 提供图形化界面
+ * 主窗口：顶部操作按钮 + 中间学生表格（全部/按时段分组），日志统一输出到控制台。
+ * <p>
+ * 每行代表一名学生：勾选框 | 学生姓名 | 年级 | 剩余课次(≤5 红字加粗) | 课时安排 | 学案设置 | 修改信息 | 反馈相关
  */
 public class MainWindow extends JFrame {
     public static MainWindow current;
-    private JTextArea logArea;
+
+    private final Set<Integer> selectedIds = new LinkedHashSet<>();
+    private final JTabbedPane tabbedPane = new JTabbedPane();
+
+    private JLabel statusLabel;
     private JButton btnGetToken;
     private JButton btnReadStudents;
-    private JButton btnCollectProfiles;
-    private JButton btnFeedback;
     private JButton btnPrintStudy;
+    private JButton btnFeedback;
     private JButton btnRenewCard;
     private JButton btnStop;
-    private JLabel statusLabel;
+    private JButton btnSettings;
 
     public MainWindow() {
         initUI();
     }
 
-    /**
-     * 显示主窗口
-     */
+    /** 显示主窗口 */
     public static void showMainWindow() {
         SwingUtilities.invokeLater(() -> {
             try {
-                // 设置系统外观
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
             MainWindow window = new MainWindow();
-            window.log("欢迎使用爱优读学生反馈系统");
-            window.log("请点击上方按钮执行相应操作");
             window.setVisible(true);
+            window.refreshAll();
             current = window;
         });
     }
 
     private void initUI() {
         setTitle("爱优读学生反馈系统");
-        setSize(900, 700);
+        setSize(1180, 760);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null); // 居中显示
+        setLocationRelativeTo(null);
 
-        // 创建主面板
-        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        JPanel mainPanel = new JPanel(new BorderLayout(8, 8));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
-        // 顶部控制面板
-        JPanel controlPanel = createControlPanel();
-        mainPanel.add(controlPanel, BorderLayout.NORTH);
+        mainPanel.add(createTopBar(), BorderLayout.NORTH);
 
-        // 中间日志区域
-        JScrollPane scrollPane = new JScrollPane();
-        logArea = new JTextArea();
-        logArea.setEditable(false);
-        logArea.setFont(new Font("微软雅黑", Font.PLAIN, 13));
-        logArea.setLineWrap(true);
-        logArea.setWrapStyleWord(true);
-        scrollPane.setViewportView(logArea);
-        // 设置滚动速度
-        scrollPane.getVerticalScrollBar().setUnitIncrement(20);
-        scrollPane.getHorizontalScrollBar().setUnitIncrement(20);
-        scrollPane.getVerticalScrollBar().setBlockIncrement(100);
-        mainPanel.add(scrollPane, BorderLayout.CENTER);
+        tabbedPane.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        mainPanel.add(tabbedPane, BorderLayout.CENTER);
 
-        // 底部状态栏
         statusLabel = new JLabel("就绪");
-        statusLabel.setBorder(new EmptyBorder(5, 5, 5, 5));
+        statusLabel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
         mainPanel.add(statusLabel, BorderLayout.SOUTH);
 
         add(mainPanel);
@@ -115,198 +109,302 @@ public class MainWindow extends JFrame {
         });
     }
 
-    /**
-     * 创建控制面板
-     */
-    private JPanel createControlPanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("操作面板"));
+    // ==================== 顶部按钮栏 ====================
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-
-        // 第一行：主要功能按钮
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        btnGetToken = createButton("获取Token", "启动浏览器并登录以获取Token");
-        panel.add(btnGetToken, gbc);
-
-        gbc.gridx = 1;
-        btnReadStudents = createButton("读取学生", "读取学生信息并保存到内存");
-        panel.add(btnReadStudents, gbc);
-
-        gbc.gridx = 2;
-        btnCollectProfiles = createButton("采集档案", "收集学生详细信息");
-        panel.add(btnCollectProfiles, gbc);
-
-        gbc.gridx = 3;
-        btnFeedback = createButton("AI点评", "使用AI生成学生点评");
-        panel.add(btnFeedback, gbc);
-
-        gbc.gridx = 4;
-        btnPrintStudy = createButton("打印学案", "批量打印学生学案");
-        panel.add(btnPrintStudy, gbc);
-
-        gbc.gridx = 5;
-        btnRenewCard = createButton("续费学生卡", "根据配置文件批量续费学生卡");
-        panel.add(btnRenewCard, gbc);
-
-        // 第二行：停止按钮和说明
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.gridwidth = 6;
-        btnStop = createButton("停止任务", "立即停止当前正在运行的任务");
+    private JPanel createTopBar() {
+        JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 6));
+        btnGetToken = button("获取token", "启动浏览器并登录以获取 Token");
+        btnReadStudents = button("读取学生", "读取学生信息并刷新下方表格");
+        btnPrintStudy = button("批量打印学案", "对勾选学生按学案设置批量打印");
+        btnFeedback = button("批量生成反馈", "采集档案 / AI 生成反馈");
+        btnRenewCard = button("续费学生卡", "按配置为学生卡续费");
+        btnStop = button("停止任务", "立即停止当前正在运行的任务");
         btnStop.setBackground(new Color(255, 100, 100));
-        btnStop.setForeground(Color.BLACK);
-        panel.add(btnStop, gbc);
+        btnSettings = button("偏好设置", "设置生成反馈时合并最近几条历史反馈");
 
-        // 绑定事件监听器
-        bindActionListeners();
+        bar.add(btnGetToken);
+        bar.add(btnReadStudents);
+        bar.add(btnPrintStudy);
+        bar.add(btnFeedback);
+        bar.add(btnRenewCard);
+        bar.add(btnStop);
+        bar.add(btnSettings);
 
-        return panel;
+        bindActions();
+
+        // 让任务运行期间自动禁用顶部按钮并更新状态栏
+        TaskExecutor.initGUI(this, statusLabel, btnGetToken, btnReadStudents, btnPrintStudy,
+            btnFeedback, btnRenewCard, btnStop, btnSettings);
+        return bar;
     }
 
-    /**
-     * 创建按钮
-     */
-    private JButton createButton(String text, String tooltip) {
-        JButton button = new JButton(text);
-        button.setToolTipText(tooltip);
-        button.setPreferredSize(new Dimension(140, 35));
-        return button;
+    private static JButton button(String text, String tip) {
+        JButton b = new JButton(text);
+        b.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        b.setPreferredSize(new Dimension(118, 34));
+        b.setToolTipText(tip);
+        return b;
     }
 
-    /**
-     * 绑定按钮事件
-     */
-    private void bindActionListeners() {
-        btnGetToken.addActionListener(e -> {
-            String error = TaskExecutor.executeTask(() -> {
-                log("正在启动浏览器，请手动登录...");
-                log("如果没有安装 Edge 浏览器，请安装，因为使用了 EdgeDriver");
-                TimeUtil.sleep(3000);
-                TokenGetter.start();
-            }, "TokenGetter-Thread");
-            // 如果返回错误信息，executeTask已经显示了提示框
-        });
+    private void bindActions() {
+        btnGetToken.addActionListener(e -> TaskExecutor.executeTask(() -> {
+            log("正在启动浏览器，请在浏览器中完成登录...");
+            TimeUtil.sleep(3000);
+            TokenGetter.start();
+        }, "TokenGetter-Thread"));
 
-        btnReadStudents.addActionListener(e -> {
-            String error = TaskExecutor.executeTask(StudentReader::start, "StudentReader-Thread");
-            // 如果返回错误信息，executeTask已经显示了提示框
-        });
+        btnReadStudents.addActionListener(e -> TaskExecutor.executeTask(() -> {
+            StudentReader.start();
+            SwingUtilities.invokeLater(this::refreshAll);
+        }, "StudentReader-Thread"));
 
-        btnCollectProfiles.addActionListener(e -> {
-            if (!StudentReader.hasStudents()) {
-                JOptionPane.showMessageDialog(this,
-                    "请先执行【读取学生】操作！",
-                    "提示",
-                    JOptionPane.WARNING_MESSAGE);
+        btnPrintStudy.addActionListener(e -> {
+            if (!ensureStudents()) return;
+            List<StudentInfo> selected = getSelectedStudents();
+            if (selected.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "请先在表格中勾选学生！", "提示", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            StudentProfileDialog.showDialog(this, (students, dateRangeMap) -> {
-                log("开始采集学生档案...");
-
-                // 设置选中的学生到采集器
-                me.xpyex.software.feedback.tasks.StudentInfoCollector.setSelectedStudents(students);
-
-                // 设置日期范围（使用第一个学生的日期，因为批量设置时所有学生日期相同）
-                if (!dateRangeMap.isEmpty()) {
-                    // 获取任意一个学生的日期范围
-                    String[] firstDateRange = dateRangeMap.values().iterator().next();
-                    StudentInfoCollector.setStart(firstDateRange[0]);
-                    StudentInfoCollector.setEnd(firstDateRange[1]);
-                    log(String.format("采集日期范围：%s 至 %s", firstDateRange[0], firstDateRange[1]));
-                }
-
-                // 执行采集任务
-                String error = TaskExecutor.executeTask(
-                    StudentInfoCollector::start,
-                    "StudentInfoCollector-Thread"
-                );
-                // 如果返回错误信息，executeTask已经显示了提示框
-            });
+            TaskExecutor.executeTask(() -> PrintStudentStudy.startWithStudents(selected), "PrintStudentStudy-Thread");
         });
 
         btnFeedback.addActionListener(e -> {
-            if (!StudentReader.hasStudents()) {
-                JOptionPane.showMessageDialog(this,
-                    "请先执行【读取学生】操作！",
-                    "提示",
-                    JOptionPane.WARNING_MESSAGE);
-                return;
+            if (!ensureStudents()) return;
+            int choice = JOptionPane.showOptionDialog(this,
+                "请选择要执行的操作：", "批量生成反馈",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null,
+                new Object[]{"采集档案（生成 AI 素材）", "AI 反馈"}, null);
+            if (choice == 0) {
+                openCollectDialog();
+            } else if (choice == 1) {
+                openAiFeedbackDialog();
             }
-            SimpleStudentSelectionDialog.showDialog(this, "AI点评", selectedStudents -> {
-                log("交由 AI 处理数据...");
-                // 使用 TaskExecutor 异步执行，避免阻塞 UI
-                String error = TaskExecutor.executeTask(
-                    () -> DeepSeekAnalyzer.startWithStudents(selectedStudents),
-                    "DeepSeekAnalyzer-Thread"
-                );
-                // 如果返回错误信息，executeTask已经显示了提示框
-            });
-        });
-
-        btnPrintStudy.addActionListener(e -> {
-            if (!StudentReader.hasStudents()) {
-                JOptionPane.showMessageDialog(this,
-                    "请先执行【读取学生】操作！",
-                    "提示",
-                    JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            StudentPrintDialog.showDialog(this, selectedStudents -> {
-                log("开始批量处理学生...");
-                // 使用 TaskExecutor 异步执行，避免阻塞 UI
-                String error = TaskExecutor.executeTask(
-                    () -> PrintStudentStudy.startWithStudents(selectedStudents),
-                    "PrintStudentStudy-Thread"
-                );
-                // 如果返回错误信息，executeTask已经显示了提示框
-            });
         });
 
         btnRenewCard.addActionListener(e -> {
-            if (!StudentReader.hasStudents()) {
-                JOptionPane.showMessageDialog(this,
-                    "请先执行【读取学生】操作！",
-                    "提示",
-                    JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            // 打开续费配置对话框
-            RenewStudentDialog.showDialog(this, selectedStudents -> {
-                log("开始批量续费学生卡...");
-                String error = TaskExecutor.executeTask(
-                    () -> RenewStudentCard.startWithStudents(selectedStudents),
-                    "RenewStudentCard-Thread"
-                );
-                // 如果返回错误信息，executeTask已经显示了提示框
-            });
+            if (!ensureStudents()) return;
+            RenewStudentDialog.showDialog(this, selected ->
+                TaskExecutor.executeTask(() -> RenewStudentCard.startWithStudents(selected), "RenewStudentCard-Thread"));
         });
 
         btnStop.addActionListener(e -> TaskExecutor.stopCurrentTask());
+        btnSettings.addActionListener(e -> SettingsDialog.showDialog(this));
     }
 
+    private boolean ensureStudents() {
+        if (StudentReader.hasStudents()) return true;
+        JOptionPane.showMessageDialog(this, "请先执行【读取学生】操作！", "提示", JOptionPane.WARNING_MESSAGE);
+        return false;
+    }
+
+    /** 采集档案：选择学生与日期范围 */
+    private void openCollectDialog() {
+        StudentProfileDialog.showDialog(this, (students, dateRangeMap) -> {
+            if (students.isEmpty()) return;
+            StudentInfoCollector.setSelectedStudents(students);
+            // 使用同一日期范围（批量选择时通常一致）
+            if (!dateRangeMap.isEmpty()) {
+                String[] range = dateRangeMap.values().iterator().next();
+                StudentInfoCollector.setStart(range[0]);
+                StudentInfoCollector.setEnd(range[1]);
+            }
+            TaskExecutor.executeTask(StudentInfoCollector::start, "StudentInfoCollector-Thread");
+        });
+    }
+
+    /** AI 反馈：选择学生 */
+    private void openAiFeedbackDialog() {
+        SimpleStudentSelectionDialog.showDialog(this, "AI 反馈", selected ->
+            TaskExecutor.executeTask(() -> DeepSeekAnalyzer.startWithStudents(selected), "DeepSeekAnalyzer-Thread"));
+    }
+
+    // ==================== 学生表格 ====================
+
     /**
-     * 记录日志
+     * 刷新整个中部区域：重算所有在生课时 → 重建「全部」与各分组标签页。
+     * 必须在 EDT 上调用。
      */
+    public void refreshAll() {
+        Map<Integer, StudentInfo> students = StudentReader.copyStudents();
+        ScheduleManager.recomputeAllStudents(students.values()); // 保持剩余课次随日期滚动（顺带写对文件名）
+
+        tabbedPane.removeAll();
+        selectedIds.retainAll(students.keySet());
+
+        if (students.isEmpty()) {
+            JLabel empty = new JLabel("暂无学生数据，请点击顶部【读取学生】加载", JLabel.CENTER);
+            empty.setFont(new Font("微软雅黑", Font.PLAIN, 15));
+            empty.setForeground(Color.GRAY);
+            JPanel p = new JPanel(new BorderLayout());
+            p.add(empty, BorderLayout.CENTER);
+            tabbedPane.addTab("全部学生", p);
+        } else {
+            List<StudentInfo> all = students.values().stream()
+                                     .sorted(Comparator.comparingInt(StudentInfo::getGrade)
+                                                   .thenComparing(StudentInfo::getRealName,
+                                                       Comparator.nullsLast(String::compareTo)))
+                                     .toList();
+
+            tabbedPane.addTab("全部学生", buildStudentTab(all));
+            Map<String, List<StudentInfo>> groups = StudentGroupManager.groupBy(all);
+            for (Map.Entry<String, List<StudentInfo>> entry : groups.entrySet()) {
+                tabbedPane.addTab(entry.getKey(), buildStudentTab(entry.getValue()));
+            }
+        }
+        updateStatusLabel();
+    }
+
+    /** 构建一个标签页：表头(含全选) + 可滚动学生行 */
+    private JPanel buildStudentTab(List<StudentInfo> students) {
+        JPanel content = new JPanel(new BorderLayout());
+
+        List<JCheckBox> rowBoxes = new ArrayList<>();
+        JPanel rowsPanel = new JPanel();
+        rowsPanel.setLayout(new javax.swing.BoxLayout(rowsPanel, javax.swing.BoxLayout.Y_AXIS));
+        for (StudentInfo student : students) {
+            rowsPanel.add(buildStudentRow(student, rowBoxes));
+        }
+
+        content.add(buildHeader(rowBoxes), BorderLayout.NORTH);
+
+        JScrollPane scroll = new JScrollPane(rowsPanel);
+        scroll.getVerticalScrollBar().setUnitIncrement(20);
+        content.add(scroll, BorderLayout.CENTER);
+        return content;
+    }
+
+    /** 表头行（列宽与数据行保持一致：8 列 GridLayout） */
+    private JPanel buildHeader(List<JCheckBox> rowBoxes) {
+        JPanel header = new JPanel(new GridLayout(1, 8, 2, 0));
+        header.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, Color.DARK_GRAY));
+
+        JCheckBox selectAll = new JCheckBox("全选");
+        selectAll.setHorizontalAlignment(JCheckBox.CENTER);
+        selectAll.addActionListener(e -> {
+            for (JCheckBox cb : rowBoxes) {
+                cb.setSelected(selectAll.isSelected());
+            }
+            updateStatusLabel();
+        });
+
+        header.add(selectAll);
+        header.add(headerLabel("学生姓名"));
+        header.add(headerLabel("年级"));
+        header.add(headerLabel("剩余课次"));
+        header.add(headerLabel("课时安排"));
+        header.add(headerLabel("学案设置"));
+        header.add(headerLabel("修改信息"));
+        header.add(headerLabel("反馈相关"));
+        return header;
+    }
+
+    private static JLabel headerLabel(String text) {
+        JLabel l = new JLabel(text, JLabel.CENTER);
+        l.setFont(new Font("微软雅黑", Font.BOLD, 13));
+        l.setBorder(BorderFactory.createEmptyBorder(4, 0, 4, 0));
+        return l;
+    }
+
+    /** 单行：勾选框 | 姓名 | 年级 | 剩余课次 | 4 个操作按钮 */
+    private JPanel buildStudentRow(StudentInfo student, List<JCheckBox> rowBoxes) {
+        JPanel row = new JPanel(new GridLayout(1, 8, 2, 0));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        row.setPreferredSize(new Dimension(600, 40));
+        row.setBorder(BorderFactory.createEmptyBorder(1, 2, 1, 2));
+
+        int studentId = student.getStudentId();
+
+        // 第0列 勾选框
+        JCheckBox cb = new JCheckBox("", selectedIds.contains(studentId));
+        cb.setHorizontalAlignment(JCheckBox.CENTER);
+        cb.addItemListener(e -> {
+            if (cb.isSelected()) {
+                selectedIds.add(studentId);
+            } else {
+                selectedIds.remove(studentId);
+            }
+            updateStatusLabel();
+        });
+        rowBoxes.add(cb);
+        row.add(cb);
+
+        // 第1列 姓名
+        row.add(cellLabel(student.getRealName()));
+
+        // 第2列 年级
+        row.add(cellLabel(student.getGradeValue()));
+
+        // 第3列 剩余课次（≤5 红字加粗）
+        JLabel remaining = remainingCell(student);
+        row.add(remaining);
+
+        // 第4-7列 操作按钮
+        JButton btnSchedule = new JButton("课时安排");
+        JButton btnStudy = new JButton("学案设置");
+        JButton btnEdit = new JButton("修改信息");
+        JButton btnFeedback = new JButton("反馈相关");
+        for (JButton b : new JButton[]{btnSchedule, btnStudy, btnEdit, btnFeedback}) {
+            b.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+            row.add(b);
+        }
+
+        btnSchedule.addActionListener(e -> {
+            ScheduleDialog.showDialog(this, student);
+            refreshAll(); // 课时变化会改变剩余课次与所属分组
+        });
+        btnStudy.addActionListener(e -> StudyConfigDialog.showDialog(this, student));
+        btnEdit.addActionListener(e -> {
+            EditStudentInfoDialog.showDialog(this, student);
+            refreshAll(); // 提交成功会刷新，这里兜底
+        });
+        btnFeedback.addActionListener(e -> StudentActionDialog.showDialog(this, student));
+        return row;
+    }
+
+    private static JLabel cellLabel(String text) {
+        JLabel l = new JLabel(text == null ? "" : text, JLabel.CENTER);
+        l.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        return l;
+    }
+
+    /** 剩余课次单元格：无课时配置显示 —；≤5 红色加粗 */
+    private JLabel remainingCell(StudentInfo student) {
+        StudentSchedule schedule = ScheduleManager.load(student.getStudentId());
+        JLabel label = new JLabel("—", JLabel.CENTER);
+        label.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        if (schedule != null) {
+            int remaining = schedule.remainingLessons();
+            label.setText(String.valueOf(remaining));
+            if (remaining <= 5) {
+                label.setFont(new Font("微软雅黑", Font.BOLD, 13));
+                label.setForeground(new Color(200, 0, 0));
+            }
+        }
+        return label;
+    }
+
+    /** 勾选状态 -> 学生列表（按勾选顺序） */
+    private List<StudentInfo> getSelectedStudents() {
+        List<StudentInfo> list = new ArrayList<>();
+        for (int id : selectedIds) {
+            StudentInfo s = StudentReader.getStudentById(id);
+            if (s != null) list.add(s);
+        }
+        return list;
+    }
+
+    private void updateStatusLabel() {
+        int total = StudentReader.getStudentCount();
+        statusLabel.setText(String.format("共读取 %d 名学生 · 已选择 %d", total, selectedIds.size()));
+    }
+
+    // ==================== 控制台日志（兼容旧调用点，不再写入界面） ====================
+
     public void log(String message) {
-        SwingUtilities.invokeLater(() -> {
-            String timestamp = TimeUtil.parseDate(new Date(), "HH:mm:ss");
-            logArea.append("[" + timestamp + "] " + message + "\n");
-            logArea.setCaretPosition(logArea.getDocument().getLength());
-        });
+        System.out.println(message);
     }
 
-    /**
-     * 记录错误日志
-     */
     public void logError(String message) {
-        SwingUtilities.invokeLater(() -> {
-            String timestamp = TimeUtil.parseDate(new Date(), "HH:mm:ss");
-            logArea.append("[" + timestamp + "] [错误] " + message + "\n");
-            logArea.setCaretPosition(logArea.getDocument().getLength());
-        });
+        System.err.println(message);
     }
 }

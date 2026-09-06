@@ -1,4 +1,4 @@
-package me.xpyex.software.feedback.tasks;
+package me.xpyex.software.feedback.tasks.feedback;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import me.xpyex.software.feedback.feedback.FeedbackHistoryManager;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.ui.MainWindow;
 import me.xpyex.software.feedback.util.GsonUtil;
@@ -215,8 +216,10 @@ public class DeepSeekAnalyzer {
             log.info("[{}/{}] 正在分析文件：{}", current, total, data.relativePath);
 
             try {
-                // 发送请求到 DeepSeek
-                String response = sendToDeepSeek(promptTemplate, data.content);
+                // 发送请求到 DeepSeek：若该生存有历史反馈，按全局配置把最近 N 条一并合并
+                String contentToSend = mergeHistoryIfAny(data);
+
+                String response = sendToDeepSeek(promptTemplate, contentToSend);
 
                 if (response != null && !response.isEmpty()) {
                     log.info("√ DeepSeek 响应成功");
@@ -359,6 +362,44 @@ public class DeepSeekAnalyzer {
 
         } catch (IOException e) {
             log.error("  保存结果失败：", e);
+        }
+    }
+
+    /**
+     * 若该学生配置了历史反馈，则把最近 N 条（全局设置）以"历史反馈块"的形式合并进待分析文本；
+     * 无历史或条数设为 0 时原样返回。
+     */
+    private static String mergeHistoryIfAny(FileData data) {
+        int n = FeedbackHistoryManager.getGlobalCount();
+        if (n <= 0) return data.content;
+
+        Integer studentId = parseStudentId(data);
+        if (studentId == null) {
+            log.debug("无法从路径解析学生ID，不合并历史反馈：{}", data.relativePath);
+            return data.content;
+        }
+
+        String block = FeedbackHistoryManager.recentBlock(studentId, n);
+        if (block.isEmpty()) return data.content;
+
+        log.info("√ 已附带该生最近 {} 条历史反馈", n);
+        return "### 该学生最近 " + n + " 次历史反馈（请保持风格一致、避免重复内容）：\n"
+            + block
+            + "\n\n### 本次需要生成反馈的学情数据：\n"
+            + data.content;
+    }
+
+    /** 从文件相对路径解析学生 ID：students/{分组}_{姓名}_{id}/{姓名}日期.txt */
+    private static Integer parseStudentId(FileData data) {
+        try {
+            File parent = new File(data.relativePath).getParentFile();
+            if (parent == null) return null;
+            String folder = parent.getName();
+            int idx = folder.lastIndexOf('_');
+            if (idx < 0 || idx == folder.length() - 1) return null;
+            return Integer.parseInt(folder.substring(idx + 1));
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 

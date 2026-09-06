@@ -2,7 +2,6 @@ package me.xpyex.software.feedback.util;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import java.text.MessageFormat;
 import javax.swing.JOptionPane;
 import me.xpyex.software.feedback.ui.MainWindow;
 import org.slf4j.Logger;
@@ -49,11 +48,18 @@ public class LogUtil {
         logNecessary(sign.repeat(Math.max(0, length)));
     }
 
+    /**
+     * 关键日志：统一输出到控制台（slf4j），不再镜像到任何 GUI 区域。
+     * 支持 SLF4J 的 {} 占位符风格，也兼容 MessageFormat 的 {0} 风格（自动转换）。
+     */
     public static void logNecessary(String msg, Object... objects) {
-        getLogger().info(msg, objects);
-        if (MainWindow.current != null) {
-            MainWindow.current.log("[" + getCallerName() + "] " + MessageFormat.format(msg, objects));
+        if (objects != null && objects.length > 0 && msg.contains("{0}")) {
+            // 兼容旧的 MessageFormat 占位符，转为 SLF4J 的 {} 风格
+            for (int i = 0; i < objects.length; i++) {
+                msg = msg.replace("{" + i + "}", "{}");
+            }
         }
+        getLogger().info(msg, objects);
     }
 
     public static void warn(String msg) {
