@@ -21,15 +21,23 @@ import org.slf4j.LoggerFactory;
  * 全局自定义的 N 值存放在 config/ai.json 的 historyCount 字段。
  */
 public class FeedbackHistoryManager {
-    private static final Logger log = LoggerFactory.getLogger(FeedbackHistoryManager.class.getSimpleName());
-    /** 历史反馈存储目录 */
+    /**
+     * 历史反馈存储目录
+     */
     public static final String DIR = "config/feedback/";
-    /** 全局配置文件名（不含扩展名）：config/ai.json */
+    /**
+     * 全局配置文件名（不含扩展名）：config/ai.json
+     */
     public static final String GLOBAL_CONFIG = "ai";
-    /** 全局配置中的字段名 */
+    /**
+     * 全局配置中的字段名
+     */
     public static final String GLOBAL_KEY = "historyCount";
-    /** 默认合并条数 */
+    /**
+     * 默认合并条数
+     */
     public static final int DEFAULT_COUNT = 3;
+    private static final Logger log = LoggerFactory.getLogger(FeedbackHistoryManager.class.getSimpleName());
 
     private FeedbackHistoryManager() {
     }
@@ -51,13 +59,17 @@ public class FeedbackHistoryManager {
         return name.replaceAll("[/\\\\:*?\"<>|]", "_").trim();
     }
 
-    /** 读取某学生的历史反馈；无文件返回 null（不自动建空文件） */
+    /**
+     * 读取某学生的历史反馈；无文件返回 null（不自动建空文件）
+     */
     public static StudentFeedbackHistory load(StudentInfo student) {
         if (student == null) return null;
         return loadByStudentId(student.getStudentId());
     }
 
-    /** 按学生 ID 读取（精确文件名 → 目录后缀兜底）；无文件返回 null */
+    /**
+     * 按学生 ID 读取（精确文件名 → 目录后缀兜底）；无文件返回 null
+     */
     public static StudentFeedbackHistory loadByStudentId(int studentId) {
         File dir = new File(DIR);
         File[] files = dir.exists() ? dir.listFiles() : null;
@@ -72,7 +84,9 @@ public class FeedbackHistoryManager {
         return null;
     }
 
-    /** 读取或返回空历史（studentId 已设，realName 未知） */
+    /**
+     * 读取或返回空历史（studentId 已设，realName 未知）
+     */
     private static StudentFeedbackHistory loadOrEmpty(int studentId) {
         StudentFeedbackHistory history = loadByStudentId(studentId);
         if (history == null) {
@@ -97,7 +111,9 @@ public class FeedbackHistoryManager {
         }
     }
 
-    /** 保存历史反馈；文件名以最新姓名生成，同时保留 _id 后缀可扫描 */
+    /**
+     * 保存历史反馈；文件名以最新姓名生成，同时保留 _id 后缀可扫描
+     */
     public static boolean save(StudentFeedbackHistory history) {
         if (history == null) return false;
         File file = fileFor(history.getRealName(), history.getStudentId());
@@ -117,19 +133,23 @@ public class FeedbackHistoryManager {
 
     // ==================== 业务操作 ====================
 
-    /** 追加一条历史反馈并保存；records 按日期升序排列 */
+    /**
+     * 追加一条历史反馈并保存；records 按日期升序排列
+     */
     public static boolean append(StudentInfo student, String date, String text) {
         if (student == null || text == null || text.isBlank()) return false;
         StudentFeedbackHistory history = loadOrEmpty(student.getStudentId());
         history.setRealName(student.getRealName());
         history.getRecords().add(StudentFeedbackHistory.Record.of()
-                                          .setDate(date == null ? "" : date)
-                                          .setText(text.trim()));
+                                     .setDate(date == null ? "" : date)
+                                     .setText(text.trim()));
         history.getRecords().sort(Comparator.comparing(r -> r.getDate() == null ? "" : r.getDate()));
         return save(history);
     }
 
-    /** 删除指定下标的记录（下标基于按日期升序后的列表），并保存 */
+    /**
+     * 删除指定下标的记录（下标基于按日期升序后的列表），并保存
+     */
     public static boolean deleteAt(StudentInfo student, int index) {
         if (student == null || index < 0) return false;
         StudentFeedbackHistory history = loadByStudentId(student.getStudentId());
@@ -139,7 +159,9 @@ public class FeedbackHistoryManager {
         return save(history);
     }
 
-    /** 取最近 n 条（按日期从新到旧），n <= 0 时返回空 */
+    /**
+     * 取最近 n 条（按日期从新到旧），n <= 0 时返回空
+     */
     public static List<StudentFeedbackHistory.Record> recent(int studentId, int n) {
         StudentFeedbackHistory history = loadByStudentId(studentId);
         if (history == null || n <= 0) return List.of();
@@ -148,22 +170,26 @@ public class FeedbackHistoryManager {
         return list.subList(0, Math.min(n, list.size()));
     }
 
-    /** 把最近若干条历史反馈拼成可读块（带日期），供合并进 AI 文本 */
+    /**
+     * 把最近若干条历史反馈拼成可读块（带日期），供合并进 AI 文本
+     */
     public static String recentBlock(int studentId, int n) {
         List<StudentFeedbackHistory.Record> recent = recent(studentId, n);
         if (recent.isEmpty()) return "";
         StringBuilder sb = new StringBuilder();
         for (StudentFeedbackHistory.Record r : recent) {
             sb.append("[").append(r.getDate() == null ? "未知日期" : r.getDate()).append("]\n")
-              .append(r.getText() == null ? "" : r.getText().trim())
-              .append("\n\n");
+                .append(r.getText() == null ? "" : r.getText().trim())
+                .append("\n\n");
         }
         return sb.toString().trim();
     }
 
     // ==================== 全局条数设置 ====================
 
-    /** 读取全局"最近 N 条"设置；未配置时用默认值 */
+    /**
+     * 读取全局"最近 N 条"设置；未配置时用默认值
+     */
     public static int getGlobalCount() {
         JsonObject cfg = ConfigManager.loadConfig(GLOBAL_CONFIG);
         if (cfg.has(GLOBAL_KEY)) {
@@ -176,7 +202,9 @@ public class FeedbackHistoryManager {
         return DEFAULT_COUNT;
     }
 
-    /** 保存全局"最近 N 条"设置到 config/ai.json */
+    /**
+     * 保存全局"最近 N 条"设置到 config/ai.json
+     */
     public static void setGlobalCount(int n) {
         JsonObject cfg = new JsonObject();
         cfg.addProperty(GLOBAL_KEY, Math.max(0, n));

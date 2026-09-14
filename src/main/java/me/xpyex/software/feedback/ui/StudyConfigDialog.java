@@ -40,7 +40,7 @@ public class StudyConfigDialog extends JDialog {
         this.student = student;
         StudyConfig loaded = StudyConfigManager.load(student);
         this.config = loaded == null ? StudyConfig.of().setStudentId(student.getStudentId()).setRealName(student.getRealName())
-                           : loaded;
+                          : loaded;
 
         initUI();
         initializing = false;
@@ -48,7 +48,9 @@ public class StudyConfigDialog extends JDialog {
         setLocationRelativeTo(getParent());
     }
 
-    /** 显示学案设置弹窗（模态） */
+    /**
+     * 显示学案设置弹窗（模态）
+     */
     public static void showDialog(JFrame parent, StudentInfo student) {
         new StudyConfigDialog(parent, student).setVisible(true);
     }
@@ -131,7 +133,9 @@ public class StudyConfigDialog extends JDialog {
         add(main);
     }
 
-    /** 保存当前题型篇数；非法/负数输入在控制台提示并重置为 0 */
+    /**
+     * 保存当前题型篇数；非法/负数输入在控制台提示并重置为 0
+     */
     private void saveType(StudyType type, JTextField field) {
         if (initializing) return;
         String text = field.getText().trim();

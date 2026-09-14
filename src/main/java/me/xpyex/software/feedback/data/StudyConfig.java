@@ -17,20 +17,30 @@ import lombok.experimental.Accessors;
 @NoArgsConstructor(staticName = "of")
 public class StudyConfig {
     private int studentId;
-    /** 冗余保存真实姓名，便于生成可读的文件名与界面识别 */
+    /**
+     * 冗余保存真实姓名，便于生成可读的文件名与界面识别
+     */
     private String realName;
-    /** 各题型 -> 打印篇数（仅保存 > 0 的有效配置） */
+    /**
+     * 各题型 -> 打印篇数（仅保存 > 0 的有效配置）
+     */
     private Map<String, Integer> typeCountMap = new LinkedHashMap<>();
-    /** 打印完成后是否回收（退掉）刚续费的月卡；false 表示给学生保留该月卡（真正续费一月） */
+    /**
+     * 打印完成后是否回收（退掉）刚续费的月卡；false 表示给学生保留该月卡（真正续费一月）
+     */
     private boolean refundMonth = true;
 
-    /** 各题型篇数总和（用于判断该配置是否需要处理） */
+    /**
+     * 各题型篇数总和（用于判断该配置是否需要处理）
+     */
     public int totalCount() {
         if (typeCountMap == null) return 0;
         return typeCountMap.values().stream().mapToInt(Integer::intValue).sum();
     }
 
-    /** 是否无需打印（无配置或所有题型篇数都 <= 0） */
+    /**
+     * 是否无需打印（无配置或所有题型篇数都 <= 0）
+     */
     public boolean isEmpty() {
         return totalCount() <= 0;
     }

@@ -14,14 +14,14 @@ import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Objects;
 import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
@@ -51,22 +51,18 @@ public class ScheduleDialog extends JDialog {
     private static final Color COLOR_PAST = new Color(235, 235, 235);
 
     private final StudentInfo student;
-    private StudentSchedule schedule;
-
     private final JTextField startField;
     private final JTextField totalField;
     private final JLabel infoLabel = new JLabel();
     private final JPanel periodsPanel = new JPanel();
     private final List<JPanel> periodRows = new ArrayList<>();
-
-    private JToggleButton btnLeaveMode;
-    private JToggleButton btnExtraMode;
-
-    private int viewYear;
-    private int viewMonth; // 1-12
     private final JLabel monthTitle = new JLabel();
     private final JPanel calendarPanel = new JPanel();
-
+    private StudentSchedule schedule;
+    private JToggleButton btnLeaveMode;
+    private JToggleButton btnExtraMode;
+    private int viewYear;
+    private int viewMonth; // 1-12
     private boolean building = true; // 构建期屏蔽事件
 
     private ScheduleDialog(JFrame parent, StudentInfo student) {
@@ -79,9 +75,9 @@ public class ScheduleDialog extends JDialog {
             this.schedule = loaded;
         } else {
             this.schedule = StudentSchedule.of()
-                                    .setStudentId(student.getStudentId())
-                                    .setStartDate(ScheduleManager.toIso(today))
-                                    .setTotalLessons(30);
+                                .setStudentId(student.getStudentId())
+                                .setStartDate(ScheduleManager.toIso(today))
+                                .setTotalLessons(30);
         }
         // 用最新真实姓名命名文件（config/schedule/{真实姓名}_{studentId}.json）
         this.schedule.setRealName(student.getRealName());
@@ -123,7 +119,9 @@ public class ScheduleDialog extends JDialog {
         add(main);
     }
 
-    /** 顶部：开始日期/总课时 + 上课时段（可多组） */
+    /**
+     * 顶部：开始日期/总课时 + 上课时段（可多组）
+     */
     private JPanel buildTopPanel() {
         JPanel top = new JPanel(new BorderLayout(8, 6));
 
@@ -184,7 +182,9 @@ public class ScheduleDialog extends JDialog {
         return top;
     }
 
-    /** 新增一行时段选择：星期 + 时段 + 删除 */
+    /**
+     * 新增一行时段选择：星期 + 时段 + 删除
+     */
     private void addPeriodRow(String weeklyDay, String timeSlot) {
         JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 2));
         JComboBox<String> weekBox = new JComboBox<>(StudentSchedule.WEEK_DAYS.toArray(new String[0]));
@@ -238,14 +238,16 @@ public class ScheduleDialog extends JDialog {
         return list;
     }
 
-    /** 中央：月历 */
+    /**
+     * 中央：月历
+     */
     private JPanel buildCalendarCenter() {
         JPanel center = new JPanel(new BorderLayout(4, 4));
 
         JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 2));
         btnLeaveMode = new JToggleButton("请假(红)", true);
         btnExtraMode = new JToggleButton("加课(蓝)", false);
-        javax.swing.ButtonGroup modeGroup = new javax.swing.ButtonGroup();
+        ButtonGroup modeGroup = new ButtonGroup();
         modeGroup.add(btnLeaveMode);
         modeGroup.add(btnExtraMode);
 
@@ -286,7 +288,9 @@ public class ScheduleDialog extends JDialog {
 
     // ==================== 逻辑 ====================
 
-    /** 读取表单：开始日期/总课时/时段并落盘 + 重算 + 刷新 */
+    /**
+     * 读取表单：开始日期/总课时/时段并落盘 + 重算 + 刷新
+     */
     private void persistAndRefresh() {
         // 总课时
         int total = schedule.getTotalLessons();
@@ -323,7 +327,7 @@ public class ScheduleDialog extends JDialog {
 
         // 中途修改时段：新时段自修改当天起算（updateDate=今天），不去自动改动此前的旧历史；
         // 全新首次配置则不加 updateDate，从 startDate 补齐
-        if (existedBefore && !java.util.Objects.equals(oldPeriods, newPeriods)) {
+        if (existedBefore && !Objects.equals(oldPeriods, newPeriods)) {
             schedule.setUpdateDate(ScheduleManager.toIso(LocalDate.now()));
         }
         schedule.setPeriods(newPeriods);
@@ -342,7 +346,7 @@ public class ScheduleDialog extends JDialog {
 
     private void updateInfoLabel() {
         String periodsText = schedule.getPeriods().isEmpty()
-            ? "未设置上课时段" : schedule.groupKeys().stream().collect(Collectors.joining("、"));
+                                 ? "未设置上课时段" : String.join("、", schedule.groupKeys());
         int remaining = schedule.remainingLessons();
         infoLabel.setText(String.format("  已上 %d 次   剩余 %d 次   [%s]",
             schedule.attendedCount(), remaining, periodsText));
@@ -392,26 +396,44 @@ public class ScheduleDialog extends JDialog {
         boolean isToday = date.equals(today);
 
         JButton btn = new JButton(String.valueOf(date.getDayOfMonth()));
+        // Windows 主题下让按钮“矩形化”，确保 setBackground 底色能真实显示（否则会被渐变外观吞掉，只剩描边）
+        btn.putClientProperty("JButton.buttonType", "square");
+        btn.setContentAreaFilled(true);
+        btn.setOpaque(true);
+        btn.setFocusPainted(false);
+        btn.setRolloverEnabled(false);
         btn.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         btn.setMargin(new Insets(2, 2, 2, 2));
 
-        // 颜色优先级：请假 > 加课 > 已上课；今天的颜色在其之上叠加描边（不套红）
-        if (isLeave) btn.setBackground(COLOR_LEAVE);
-        else if (isExtra) btn.setBackground(COLOR_EXTRA);
-        else if (isAttended) btn.setBackground(COLOR_ATTENDED);
-        else if (isPast) btn.setBackground(COLOR_PAST);
-        else btn.setBackground(Color.WHITE);
+        // 颜色优先级：请假 > 加课 > 已上课 > 过去；同色 1px 描边作为底色被个别外观吞掉时的兜底
+        Color markerBorder = null;
+        Color base = Color.WHITE;
+        if (isLeave) {
+            base = COLOR_LEAVE;
+            markerBorder = new Color(190, 50, 50);
+        } else if (isExtra) {
+            base = COLOR_EXTRA;
+            markerBorder = new Color(50, 110, 220);
+        } else if (isAttended) {
+            base = COLOR_ATTENDED;
+            markerBorder = new Color(90, 170, 90);
+        } else if (isPast) {
+            base = COLOR_PAST;
+        }
+        btn.setBackground(base);
+        btn.setForeground(Color.BLACK);
+        btn.setBorder(BorderFactory.createLineBorder(markerBorder != null ? markerBorder : new Color(0xCCCCCC), 1));
 
+        // 今天用深灰粗描边区分（不再是蓝色，避免与"加课=蓝"混淆），黑字加粗
         if (isToday) {
-            btn.setBorder(BorderFactory.createLineBorder(new Color(0, 110, 200), 2));
+            btn.setBorder(BorderFactory.createLineBorder(new Color(70, 70, 70), 2));
             btn.setFont(new Font("微软雅黑", Font.BOLD, 12));
-            btn.setForeground(Color.BLACK);
         }
 
         String tip = iso
-            + (isLeave ? "（请假）" : "") + (isExtra ? "（加课）" : "")
-            + (isAttended ? "（已上课）" : "") + (isPast ? "（已过去，可点选修改）" : "")
-            + (isToday ? "（今天，不计为自动已上课）" : "");
+                         + (isLeave ? "（请假）" : "") + (isExtra ? "（加课）" : "")
+                         + (isAttended ? "（已上课）" : "") + (isPast ? "（已过去，可点选修改）" : "")
+                         + (isToday ? "（今天，不计为自动已上课）" : "");
         btn.setToolTipText(tip);
 
         // 过去、今天、未来的日期都可以点选，用于补录请假/加课、修正已上课记录
@@ -419,11 +441,13 @@ public class ScheduleDialog extends JDialog {
         return btn;
     }
 
-    /** 月历点选：按当前模式切换该日期的请假/加课标记，随后重算并落盘 */
+    /**
+     * 月历点选：按当前模式切换该日期的请假/加课标记，随后重算并落盘
+     */
     private void toggleCalendarDate(LocalDate date) {
         boolean changed = btnLeaveMode.isSelected()
-            ? ScheduleManager.toggleLeave(schedule, date)
-            : ScheduleManager.toggleExtra(schedule, date);
+                              ? ScheduleManager.toggleLeave(schedule, date)
+                              : ScheduleManager.toggleExtra(schedule, date);
         if (changed) {
             ScheduleManager.recomputeAndSave(schedule);
             updateInfoLabel();

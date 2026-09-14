@@ -51,7 +51,7 @@ public class FeedbackHistoryDialog extends JDialog {
         main.setBorder(BorderFactory.createEmptyBorder(10, 12, 12, 12));
 
         JLabel hint = new JLabel("<html>将每次真正交给该学生的历史反馈粘贴到下方并「追加保存」。"
-            + "<br>生成 AI 反馈时，程序会取最近若干条（可在主界面「偏好设置」调整条数）一并合并给 AI 参考。</html>");
+                                     + "<br>生成 AI 反馈时，程序会取最近若干条（可在主界面「偏好设置」调整条数）一并合并给 AI 参考。</html>");
         hint.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         main.add(hint, BorderLayout.NORTH);
 
@@ -61,7 +61,9 @@ public class FeedbackHistoryDialog extends JDialog {
         add(main);
     }
 
-    /** 历史记录列表（可查看全文 / 删除） */
+    /**
+     * 历史记录列表（可查看全文 / 删除）
+     */
     private JPanel buildHistoryList() {
         JPanel wrap = new JPanel(new BorderLayout());
         JLabel title = new JLabel("已保存的历史反馈（按日期从旧到新）");
@@ -142,7 +144,9 @@ public class FeedbackHistoryDialog extends JDialog {
         refreshRecords();
     }
 
-    /** 追加表单：日期 + 文本 + 追加保存 */
+    /**
+     * 追加表单：日期 + 文本 + 追加保存
+     */
     private JPanel buildAppendForm() {
         JPanel form = new JPanel(new BorderLayout(6, 4));
         form.setBorder(BorderFactory.createTitledBorder("追加历史反馈"));

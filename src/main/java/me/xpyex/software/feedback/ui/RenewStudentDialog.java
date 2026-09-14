@@ -71,7 +71,7 @@ public class RenewStudentDialog extends BaseStudentSelectionDialog {
         } else if (student.getCardType() == StudentInfo.CardType.IN_MONTHS.getCardType()) {
             cardType = "月卡";
         } else if (student.getCardType() == StudentInfo.CardType.IN_DAYS.getCardType()) {
-            cardType = "包月卡";
+            cardType = "日卡";
         } else {
             cardType = "未知";
         }

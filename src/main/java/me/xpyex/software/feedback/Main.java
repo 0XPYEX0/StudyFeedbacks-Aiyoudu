@@ -2,12 +2,12 @@ package me.xpyex.software.feedback;
 
 import java.util.Scanner;
 import me.xpyex.software.feedback.tasks.basis.ApiTester;
-import me.xpyex.software.feedback.tasks.feedback.DeepSeekAnalyzer;
-import me.xpyex.software.feedback.tasks.studyPrepare.PrintStudentStudy;
-import me.xpyex.software.feedback.tasks.studyPrepare.RenewStudentCard;
-import me.xpyex.software.feedback.tasks.feedback.StudentInfoCollector;
 import me.xpyex.software.feedback.tasks.basis.StudentReader;
 import me.xpyex.software.feedback.tasks.basis.TokenGetter;
+import me.xpyex.software.feedback.tasks.feedback.DeepSeekAnalyzer;
+import me.xpyex.software.feedback.tasks.feedback.StudentInfoCollector;
+import me.xpyex.software.feedback.tasks.studyPrepare.PrintStudentStudy;
+import me.xpyex.software.feedback.tasks.studyPrepare.RenewStudentCard;
 import me.xpyex.software.feedback.ui.MainWindow;
 import me.xpyex.software.feedback.util.NetworkUtil;
 import me.xpyex.software.feedback.util.TaskExecutor;

@@ -10,7 +10,6 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -64,7 +63,9 @@ public class MainWindow extends JFrame {
         initUI();
     }
 
-    /** 显示主窗口 */
+    /**
+     * 显示主窗口
+     */
     public static void showMainWindow() {
         SwingUtilities.invokeLater(() -> {
             try {
@@ -77,6 +78,29 @@ public class MainWindow extends JFrame {
             window.refreshAll();
             current = window;
         });
+    }
+
+    private static JButton button(String text, String tip) {
+        JButton b = new JButton(text);
+        b.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        b.setPreferredSize(new Dimension(118, 34));
+        b.setToolTipText(tip);
+        return b;
+    }
+
+    // ==================== 顶部按钮栏 ====================
+
+    private static JLabel headerLabel(String text) {
+        JLabel l = new JLabel(text, JLabel.CENTER);
+        l.setFont(new Font("微软雅黑", Font.BOLD, 13));
+        l.setBorder(BorderFactory.createEmptyBorder(4, 0, 4, 0));
+        return l;
+    }
+
+    private static JLabel cellLabel(String text) {
+        JLabel l = new JLabel(text == null ? "" : text, JLabel.CENTER);
+        l.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        return l;
     }
 
     private void initUI() {
@@ -109,8 +133,6 @@ public class MainWindow extends JFrame {
         });
     }
 
-    // ==================== 顶部按钮栏 ====================
-
     private JPanel createTopBar() {
         JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 6));
         btnGetToken = button("获取token", "启动浏览器并登录以获取 Token");
@@ -136,14 +158,6 @@ public class MainWindow extends JFrame {
         TaskExecutor.initGUI(this, statusLabel, btnGetToken, btnReadStudents, btnPrintStudy,
             btnFeedback, btnRenewCard, btnStop, btnSettings);
         return bar;
-    }
-
-    private static JButton button(String text, String tip) {
-        JButton b = new JButton(text);
-        b.setFont(new Font("微软雅黑", Font.PLAIN, 13));
-        b.setPreferredSize(new Dimension(118, 34));
-        b.setToolTipText(tip);
-        return b;
     }
 
     private void bindActions() {
@@ -184,7 +198,7 @@ public class MainWindow extends JFrame {
         btnRenewCard.addActionListener(e -> {
             if (!ensureStudents()) return;
             RenewStudentDialog.showDialog(this, selected ->
-                TaskExecutor.executeTask(() -> RenewStudentCard.startWithStudents(selected), "RenewStudentCard-Thread"));
+                                                    TaskExecutor.executeTask(() -> RenewStudentCard.startWithStudents(selected), "RenewStudentCard-Thread"));
         });
 
         btnStop.addActionListener(e -> TaskExecutor.stopCurrentTask());
@@ -197,7 +211,11 @@ public class MainWindow extends JFrame {
         return false;
     }
 
-    /** 采集档案：选择学生与日期范围 */
+    // ==================== 学生表格 ====================
+
+    /**
+     * 采集档案：选择学生与日期范围
+     */
     private void openCollectDialog() {
         StudentProfileDialog.showDialog(this, (students, dateRangeMap) -> {
             if (students.isEmpty()) return;
@@ -212,13 +230,13 @@ public class MainWindow extends JFrame {
         });
     }
 
-    /** AI 反馈：选择学生 */
+    /**
+     * AI 反馈：选择学生
+     */
     private void openAiFeedbackDialog() {
         SimpleStudentSelectionDialog.showDialog(this, "AI 反馈", selected ->
-            TaskExecutor.executeTask(() -> DeepSeekAnalyzer.startWithStudents(selected), "DeepSeekAnalyzer-Thread"));
+                                                                     TaskExecutor.executeTask(() -> DeepSeekAnalyzer.startWithStudents(selected), "DeepSeekAnalyzer-Thread"));
     }
-
-    // ==================== 学生表格 ====================
 
     /**
      * 刷新整个中部区域：重算所有在生课时 → 重建「全部」与各分组标签页。
@@ -240,10 +258,10 @@ public class MainWindow extends JFrame {
             tabbedPane.addTab("全部学生", p);
         } else {
             List<StudentInfo> all = students.values().stream()
-                                     .sorted(Comparator.comparingInt(StudentInfo::getGrade)
-                                                   .thenComparing(StudentInfo::getRealName,
-                                                       Comparator.nullsLast(String::compareTo)))
-                                     .toList();
+                                        .sorted(Comparator.comparingInt(StudentInfo::getGrade)
+                                                    .thenComparing(StudentInfo::getRealName,
+                                                        Comparator.nullsLast(String::compareTo)))
+                                        .toList();
 
             tabbedPane.addTab("全部学生", buildStudentTab(all));
             Map<String, List<StudentInfo>> groups = StudentGroupManager.groupBy(all);
@@ -254,7 +272,9 @@ public class MainWindow extends JFrame {
         updateStatusLabel();
     }
 
-    /** 构建一个标签页：表头(含全选) + 可滚动学生行 */
+    /**
+     * 构建一个标签页：表头(含全选) + 可滚动学生行
+     */
     private JPanel buildStudentTab(List<StudentInfo> students) {
         JPanel content = new JPanel(new BorderLayout());
 
@@ -273,7 +293,9 @@ public class MainWindow extends JFrame {
         return content;
     }
 
-    /** 表头行（列宽与数据行保持一致：8 列 GridLayout） */
+    /**
+     * 表头行（列宽与数据行保持一致：8 列 GridLayout）
+     */
     private JPanel buildHeader(List<JCheckBox> rowBoxes) {
         JPanel header = new JPanel(new GridLayout(1, 8, 2, 0));
         header.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, Color.DARK_GRAY));
@@ -298,14 +320,9 @@ public class MainWindow extends JFrame {
         return header;
     }
 
-    private static JLabel headerLabel(String text) {
-        JLabel l = new JLabel(text, JLabel.CENTER);
-        l.setFont(new Font("微软雅黑", Font.BOLD, 13));
-        l.setBorder(BorderFactory.createEmptyBorder(4, 0, 4, 0));
-        return l;
-    }
-
-    /** 单行：勾选框 | 姓名 | 年级 | 剩余课次 | 4 个操作按钮 */
+    /**
+     * 单行：勾选框 | 姓名 | 年级 | 剩余课次 | 4 个操作按钮
+     */
     private JPanel buildStudentRow(StudentInfo student, List<JCheckBox> rowBoxes) {
         JPanel row = new JPanel(new GridLayout(1, 8, 2, 0));
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
@@ -361,13 +378,9 @@ public class MainWindow extends JFrame {
         return row;
     }
 
-    private static JLabel cellLabel(String text) {
-        JLabel l = new JLabel(text == null ? "" : text, JLabel.CENTER);
-        l.setFont(new Font("微软雅黑", Font.PLAIN, 13));
-        return l;
-    }
-
-    /** 剩余课次单元格：无课时配置显示 —；≤5 红色加粗 */
+    /**
+     * 剩余课次单元格：无课时配置显示 —；≤5 红色加粗
+     */
     private JLabel remainingCell(StudentInfo student) {
         StudentSchedule schedule = ScheduleManager.load(student.getStudentId());
         JLabel label = new JLabel("—", JLabel.CENTER);
@@ -383,7 +396,9 @@ public class MainWindow extends JFrame {
         return label;
     }
 
-    /** 勾选状态 -> 学生列表（按勾选顺序） */
+    /**
+     * 勾选状态 -> 学生列表（按勾选顺序）
+     */
     private List<StudentInfo> getSelectedStudents() {
         List<StudentInfo> list = new ArrayList<>();
         for (int id : selectedIds) {

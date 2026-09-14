@@ -1,6 +1,7 @@
 package me.xpyex.software.feedback.ui;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -9,6 +10,7 @@ import java.awt.Insets;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -16,6 +18,8 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.tasks.feedback.DeepSeekAnalyzer;
@@ -32,7 +36,9 @@ public class StudentActionDialog extends JDialog {
     private static final DateTimeFormatter FORMAT = DateTimeFormatter.ISO_LOCAL_DATE;
 
     private final StudentInfo student;
-    /** 父 JFrame，用于继续打开其它弹窗 */
+    /**
+     * 父 JFrame，用于继续打开其它弹窗
+     */
     private final JFrame owner;
 
     private StudentActionDialog(JFrame parent, StudentInfo student) {
@@ -64,7 +70,7 @@ public class StudentActionDialog extends JDialog {
         JButton btnCollect = new JButton("采集该生档案(AI素材)");
         JButton btnFeedback = new JButton("生成该生AI反馈");
         JButton btnHistory = new JButton("填入历史反馈");
-        java.awt.Dimension btnSize = new java.awt.Dimension(220, 36);
+        Dimension btnSize = new Dimension(220, 36);
         btnCollect.setPreferredSize(btnSize);
         btnFeedback.setPreferredSize(btnSize);
         btnHistory.setPreferredSize(btnSize);
@@ -86,15 +92,39 @@ public class StudentActionDialog extends JDialog {
         add(main);
 
         btnCollect.addActionListener(e -> collectOne());
-        btnFeedback.addActionListener(e -> {
-            dispose();
-            TaskExecutor.executeTask(() -> DeepSeekAnalyzer.startWithStudents(java.util.List.of(student)),
-                "DeepSeekAnalyzer-Thread");
-        });
+        btnFeedback.addActionListener(e -> generateFeedback());
         btnHistory.addActionListener(e -> FeedbackHistoryDialog.showDialog(owner, student));
     }
 
-    /** 为单个学生采集档案：先询问日期范围（默认上周） */
+    /**
+     * 生成该生 AI 反馈：先询问"本次特殊事件"（可留空），再带着它一并交给 AI
+     */
+    private void generateFeedback() {
+        JTextArea area = new JTextArea(6, 46);
+        area.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        area.setLineWrap(true);
+        area.setWrapStyleWord(true);
+        JScrollPane scroll = new JScrollPane(area);
+        scroll.setPreferredSize(new java.awt.Dimension(560, 130));
+
+        int option = JOptionPane.showConfirmDialog(owner,
+            new Object[]{"本次特殊事件（可留空；填写后将作为素材一并提供给 AI，例如：学生近期状态/请假原因/临时情况）", scroll},
+            "生成该生AI反馈", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (option != JOptionPane.OK_OPTION) return; // 用户取消则不执行
+
+        String specialEvent = area.getText().trim();
+        dispose();
+        // 留空 -> null（不附带）；否则交给任务内设置，避免任务未启动时残留
+        String finalEvent = specialEvent.isEmpty() ? null : specialEvent;
+        TaskExecutor.executeTask(() -> {
+            DeepSeekAnalyzer.setSpecialEvent(finalEvent);
+            DeepSeekAnalyzer.startWithStudents(List.of(student));
+        }, "DeepSeekAnalyzer-Thread");
+    }
+
+    /**
+     * 为单个学生采集档案：先询问日期范围（默认上周）
+     */
     private void collectOne() {
         JTextField startField = new JTextField(LocalDate.now().minusWeeks(1).with(DayOfWeek.MONDAY).format(FORMAT), 10);
         JTextField endField = new JTextField(LocalDate.now().minusWeeks(1).with(DayOfWeek.SUNDAY).format(FORMAT), 10);

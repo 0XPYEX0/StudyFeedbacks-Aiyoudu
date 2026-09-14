@@ -26,6 +26,7 @@ import me.xpyex.software.feedback.packet.in.AYDResponse;
 import me.xpyex.software.feedback.tasks.basis.StudentReader;
 import me.xpyex.software.feedback.tasks.basis.StudentUpdater;
 import me.xpyex.software.feedback.util.GsonUtil;
+import me.xpyex.software.feedback.util.LogUtil;
 
 /**
  * 修改信息弹窗：编辑单名学生的常用信息（姓名、年级、联系方式等），提交后 PUT 到服务端。
@@ -33,7 +34,9 @@ import me.xpyex.software.feedback.util.GsonUtil;
  * 提交成功后自动更新内存中的学生并刷新主界面表格。
  */
 public class EditStudentInfoDialog extends JDialog {
-    /** 可编辑字段名 -> (读取getter / 写入setter) */
+    /**
+     * 可编辑字段名 -> (读取getter / 写入setter)
+     */
     private final Map<String, Function<StudentInfo, String>> getters = new LinkedHashMap<>();
     private final Map<String, BiConsumer<StudentInfo, String>> setters = new LinkedHashMap<>();
     private final Map<String, JTextField> fields = new LinkedHashMap<>();
@@ -54,7 +57,9 @@ public class EditStudentInfoDialog extends JDialog {
         new EditStudentInfoDialog(parent, student).setVisible(true);
     }
 
-    /** 通过 Gson 深拷贝一份学生信息，作为可编辑的工作副本（不直接改内存对象） */
+    /**
+     * 通过 Gson 深拷贝一份学生信息，作为可编辑的工作副本（不直接改内存对象）
+     */
     private static StudentInfo cloneOf(StudentInfo origin) {
         if (origin == null) return null;
         return GsonUtil.parseObj(GsonUtil.toJsonStr(origin, false), StudentInfo.class);
@@ -149,10 +154,10 @@ public class EditStudentInfoDialog extends JDialog {
                     if (window != null) {
                         window.refreshAll();
                     }
-                    System.out.println("√ 学生 " + working.getRealName() + " 信息修改成功");
+                    LogUtil.logNecessary("√ 学生 " + working.getRealName() + " 信息修改成功");
                     dispose();
                 } else {
-                    System.out.println("✗ 学生 " + working.getRealName() + " 信息修改失败，请查看控制台");
+                    LogUtil.logNecessary("✗ 学生 " + working.getRealName() + " 信息修改失败，请查看控制台");
                     JOptionPane.showMessageDialog(this, "修改失败，请查看控制台", "错误", JOptionPane.ERROR_MESSAGE);
                     btnSubmit.setEnabled(true);
                     btnSubmit.setText("提交");

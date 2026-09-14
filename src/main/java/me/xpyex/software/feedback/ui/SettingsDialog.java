@@ -9,7 +9,6 @@ import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
@@ -40,7 +39,7 @@ public class SettingsDialog extends JDialog {
         main.setBorder(BorderFactory.createEmptyBorder(12, 14, 12, 14));
 
         JLabel hint = new JLabel("<html>生成 AI 反馈时，把该生最近 N 条已保存的历史反馈一并合并给 AI，<br>"
-            + "以便保持风格一致、避免重复。设为 0 表示不附带历史反馈。</html>");
+                                     + "以便保持风格一致、避免重复。设为 0 表示不附带历史反馈。</html>");
         hint.setFont(new Font("微软雅黑", Font.PLAIN, 13));
         main.add(hint, BorderLayout.NORTH);
 

@@ -15,7 +15,16 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.10.1'
 
     // Selenium 浏览器自动化（4.x 要求 Java 11+，4.35+ 建议 Java 17+）
-    implementation 'org.seleniumhq.selenium:selenium-java:4.46.0'
+    // 只保留 Edge：排除其它浏览器 driver，以及 Selenium Manager。
+    // 代码总是自行设置 webdriver.edge.driver（本地 driver/msedgedriver.exe 或 WebDriverManager 下载后设置），
+    // 因此 Selenium Manager 的自动下载功能不会被触发；若以后某处不设路径再把它加回来。
+    implementation('org.seleniumhq.selenium:selenium-java:4.46.0') {
+        //exclude group: 'org.seleniumhq.selenium', module: 'selenium-manager'
+        exclude group: 'org.seleniumhq.selenium', module: 'selenium-chrome-driver'
+        exclude group: 'org.seleniumhq.selenium', module: 'selenium-firefox-driver'
+        exclude group: 'org.seleniumhq.selenium', module: 'selenium-ie-driver'
+        exclude group: 'org.seleniumhq.selenium', module: 'selenium-safari-driver'
+    }
     implementation 'io.github.bonigarcia:webdrivermanager:5.6.3'
 
     // 日志依赖

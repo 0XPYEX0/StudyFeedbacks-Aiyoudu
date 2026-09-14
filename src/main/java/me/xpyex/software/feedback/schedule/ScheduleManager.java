@@ -34,10 +34,12 @@ import org.slf4j.LoggerFactory;
  * </ul>
  */
 public class ScheduleManager {
-    private static final Logger log = LoggerFactory.getLogger(ScheduleManager.class.getSimpleName());
-    /** 课时配置根目录 */
+    /**
+     * 课时配置根目录
+     */
     public static final String DIR = "config/schedule/";
     public static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE;
+    private static final Logger log = LoggerFactory.getLogger(ScheduleManager.class.getSimpleName());
 
     private ScheduleManager() {
         // 工具类，禁止实例化
@@ -55,7 +57,9 @@ public class ScheduleManager {
         return new File(DIR + (name.isEmpty() ? "" : name + "_") + studentId + ".json");
     }
 
-    /** 在目录中定位某学生的课时配置文件（按 "_studentId.json" 后缀）；不存在返回 null */
+    /**
+     * 在目录中定位某学生的课时配置文件（按 "_studentId.json" 后缀）；不存在返回 null
+     */
     private static File locate(int studentId) {
         File dir = new File(DIR);
         File[] files = dir.exists() ? dir.listFiles() : null;
@@ -71,7 +75,9 @@ public class ScheduleManager {
         return locate(studentId) != null;
     }
 
-    /** 读取课时配置；文件不存在或解析失败返回 null */
+    /**
+     * 读取课时配置；文件不存在或解析失败返回 null
+     */
     public static StudentSchedule load(int studentId) {
         File file = locate(studentId);
         if (file == null) return null;
@@ -96,7 +102,9 @@ public class ScheduleManager {
         }
     }
 
-    /** 保存课时配置（目录不存在自动创建；顺手删除旧版 {studentId}.json 测试残留） */
+    /**
+     * 保存课时配置（目录不存在自动创建；顺手删除旧版 {studentId}.json 测试残留）
+     */
     public static boolean save(StudentSchedule schedule) {
         if (schedule == null) return false;
         normalize(schedule);
@@ -120,7 +128,9 @@ public class ScheduleManager {
         }
     }
 
-    /** 字段归一化：列表非空、去重、升序 */
+    /**
+     * 字段归一化：列表非空、去重、升序
+     */
     private static void normalize(StudentSchedule s) {
         s.setPeriods(s.getPeriods() == null ? new ArrayList<>() : s.getPeriods());
         s.setLeaveDates(normalizeUnique(s.getLeaveDates()));
@@ -156,7 +166,9 @@ public class ScheduleManager {
         }
     }
 
-    /** 中文星期 -> DayOfWeek（周一~周日），无法识别返回 null */
+    /**
+     * 中文星期 -> DayOfWeek（周一~周日），无法识别返回 null
+     */
     public static DayOfWeek toDayOfWeek(String weekChinese) {
         if (weekChinese == null) return null;
         int idx = StudentSchedule.WEEK_DAYS.indexOf(weekChinese.trim());
@@ -176,7 +188,9 @@ public class ScheduleManager {
         save(s);
     }
 
-    /** 对一批学生重算并保存（自动带上最新姓名以写对文件名） */
+    /**
+     * 对一批学生重算并保存（自动带上最新姓名以写对文件名）
+     */
     public static void recomputeAllStudents(Collection<? extends StudentInfo> students) {
         if (students == null) return;
         for (StudentInfo student : students) {

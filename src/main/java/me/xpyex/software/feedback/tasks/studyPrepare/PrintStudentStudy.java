@@ -1,6 +1,7 @@
 package me.xpyex.software.feedback.tasks.studyPrepare;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +14,7 @@ import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.packet.in.AYDResponse;
 import me.xpyex.software.feedback.packet.in.StudyContentInfo;
 import me.xpyex.software.feedback.packet.out.ApplyStudentCard;
-import me.xpyex.software.feedback.packet.out.PrintMerge;
+import me.xpyex.software.feedback.packet.out.PrintListening;
 import me.xpyex.software.feedback.packet.out.PrintStudy;
 import me.xpyex.software.feedback.packet.out.RecoverDay;
 import me.xpyex.software.feedback.packet.out.RecoverMonth;
@@ -46,10 +47,14 @@ import org.slf4j.LoggerFactory;
 @ExtensionMethod(AiyouduUtil.class)
 public class PrintStudentStudy {
     private static final Logger log = LoggerFactory.getLogger(PrintStudentStudy.class.getSimpleName());
-    /** 每份最多可包含的文章篇数 */
+    /**
+     * 每份最多可包含的文章篇数
+     */
     private static final int ARTICLES_PER_COPY = 2;
 
-    /** GUI 选中的学生列表，为 null 表示处理全部在读学生 */
+    /**
+     * GUI 选中的学生列表，为 null 表示处理全部在读学生
+     */
     private static List<StudentInfo> selectedStudents = null;
 
     /**
@@ -157,14 +162,14 @@ public class PrintStudentStudy {
         try {
             updateAndLog(student, "临时修改班级为分组名",
                 student.setClassName(student.getGroup())
-                       .setCardType(StudentInfo.CardType.IN_MONTHS.getCardType())
-                       .setBillingType(0));
+                    .setCardType(StudentInfo.CardType.IN_MONTHS.getCardType())
+                    .setBillingType(0));
             printByTypes(student, config);
         } finally {
             updateAndLog(student, "恢复原班级",
                 student.setClassName(originClassName)
-                       .setCardType(StudentInfo.CardType.IN_MONTHS.getCardType())
-                       .setBillingType(0));
+                    .setCardType(StudentInfo.CardType.IN_MONTHS.getCardType())
+                    .setBillingType(0));
         }
 
         // 步骤 4: 按学案设置决定是否回收刚续的月卡
@@ -189,64 +194,77 @@ public class PrintStudentStudy {
      * 再将刚生成的该题型学案 printId 通过 PrintMerge 合并成一个 PDF 下载。
      */
     private static void printByTypes(StudentInfo student, StudyConfig config) {
-        for (Map.Entry<String, Integer> entry : config.getTypeCountMap().entrySet()) {
-            String typeName = entry.getKey();
-            Integer countObj = entry.getValue();
-            if (countObj == null || countObj <= 0) {
-                log.debug("  跳过题型 {}（篇数 {}）", typeName, countObj);
-                continue;
+        config.getTypeCountMap().forEach((typeName, count) -> {
+            if (count == null || count <= 0) {
+                log.debug("  跳过题型 {}（篇数 {}）", typeName, count);
+                return;
             }
-            int count = countObj;
 
             StudyType type = StudyContentsUtil.StudyType.getStudyTypeByName(typeName);
             if (type == null) {
                 log.warn("  ! 未知题型：{}，已跳过", typeName);
-                continue;
+                return;
             }
+            AYDResponse pdfLink;
+            int size;
+            if (type == StudyType.LISTENING) {
+                PrintListening packet = PrintListening.of().setStudentId(student.getStudentId() + "");
+                ArrayList<String> links = new ArrayList<>();
+                for (int i = 0; i < count; i++) {
+                    AYDResponse response = AYDResponse.of(PrintListening.queryListeningUrl.postUrlWithToken(packet));
+                    links.add(response.getDataAsJsonObject().get("printStudyUrl").getAsString());
+                }
+                pdfLink = AYDResponse.of(PrintListening.Merge.url.postUrlWithToken(PrintListening.Merge.of().addAll(links)));
+                size = links.size();
+            } else {
+                log.info("  → 按题型打印：{} × {} 篇", typeName, count);
 
-            log.info("  → 按题型打印：{} × {} 篇", typeName, count);
+                // 生成该题型的打印学案（每份最多 2 篇）
+                int fullCopies = count / ARTICLES_PER_COPY;
+                int remainder = count % ARTICLES_PER_COPY;
+                for (int i = 0; i < fullCopies; i++) {
+                    printOneCopy(student, ARTICLES_PER_COPY);
+                }
+                if (remainder > 0) {
+                    printOneCopy(student, remainder);
+                }
 
-            // 生成该题型的打印学案（每份最多 2 篇）
-            int fullCopies = count / ARTICLES_PER_COPY;
-            int remainder = count % ARTICLES_PER_COPY;
-            for (int i = 0; i < fullCopies; i++) {
-                printOneCopy(student, ARTICLES_PER_COPY);
+                // 汇总该题型刚生成的学案，PrintMerge 合并下载
+                Set<Integer> printIds = queryPrintIds(student, type, count);
+                if (printIds.isEmpty()) {
+                    log.warn("  ! 未获取到题型 {} 的打印学案（可能未生成纸质版），跳过合并下载", typeName);
+                    return;
+                }
+                pdfLink = AYDResponse.of(PrintStudy.PrintMerge.url.postUrlWithToken(PrintStudy.PrintMerge.of().addAll(printIds)));
+                size = printIds.size();
             }
-            if (remainder > 0) {
-                printOneCopy(student, remainder);
-            }
-
-            // 汇总该题型刚生成的学案，PrintMerge 合并下载
-            Set<Integer> printIds = queryPrintIds(student, type, count);
-            if (printIds.isEmpty()) {
-                log.warn("  ! 未获取到题型 {} 的打印学案（可能未生成纸质版），跳过合并下载", typeName);
-                continue;
-            }
-
-            AYDResponse pdfLink = AYDResponse.of(PrintMerge.url.postUrlWithToken(PrintMerge.of().addAll(printIds)));
             if (pdfLink.isSuccess()) {
-                log.info("  √ 题型 {} 学案合并完成，开始下载（{} 个学案）", typeName, printIds.size());
+                log.info("  √ 题型 {} 学案合并完成，开始下载（{} 个学案）", typeName, size);
                 downloadPdf(pdfLink.getData().getAsString(), student, typeName);
             } else {
                 log.warn("  ! 题型 {} 学案合并失败：{}", typeName, pdfLink.getMessage());
             }
             TimeUtil.sleep(1000);
-        }
+        });
     }
 
-    /** 发送一次打印学案请求（该题型的一"份"） */
+    /**
+     * 发送一次打印学案请求（该题型的一"份"）
+     */
     private static void printOneCopy(StudentInfo student, int articleNum) {
         PrintStudy printPacket = PrintStudy.of().setStudentId(student.getStudentId()).setArticleNum(articleNum);
         AYDResponse response = AYDResponse.of(PrintStudy.url.postUrlWithToken(printPacket));
         if (response != null && response.isSuccess()) {
-            log.info("  √ 已打印 1 份（{} 篇）", articleNum);
+            log.info("  √ 已生成学案 1 份（{} 篇）", articleNum);
         } else {
             log.warn("  ! 打印请求失败：{}", response == null ? "无响应" : response.getMessage());
         }
         TimeUtil.sleep(500);
     }
 
-    /** 拉取某学生某题型待反馈的学案 printId（用于合并） */
+    /**
+     * 拉取某学生某题型待反馈的学案 printId（用于合并）
+     */
     private static Set<Integer> queryPrintIds(StudentInfo student, StudyType type, int amount) {
         try {
             String url = StudyContentsUtil.getPrintUrl(student, FinishedType.NOT_FINISHED, type, amount, null);
@@ -287,7 +305,9 @@ public class PrintStudentStudy {
 
     // ==================== 以下为沿用既有逻辑的续费/退费小步骤 ====================
 
-    /** 按日结算卡且有剩余天数 → 先退费 */
+    /**
+     * 按日结算卡且有剩余天数 → 先退费
+     */
     private static void handleCardTypeAndRefund(StudentInfo student) {
         int cardType = student.getCardType();
         int expireDay = student.getExpireDay();
@@ -297,8 +317,8 @@ public class PrintStudentStudy {
         if (cardType == StudentInfo.CardType.IN_DAYS.getCardType() && expireDay > 0) {
             log.info("  → 按日结算卡有剩余 {} 天，先执行退费...", expireDay);
             RecoverDay recoverDay = RecoverDay.of()
-                                          .setStudentId(student.getStudentId())
-                                          .setDay(expireDay);
+                                        .setStudentId(student.getStudentId())
+                                        .setDay(expireDay);
             AYDResponse response = AYDResponse.of(
                 AiyouduUtil.apiUrl + "platform/change/studentRecoverDay".postUrlWithToken(recoverDay));
             if (response != null && response.isSuccess()) {
@@ -312,7 +332,9 @@ public class PrintStudentStudy {
         }
     }
 
-    /** 对学生账号按月续费一个月 */
+    /**
+     * 对学生账号按月续费一个月
+     */
     private static void rechargeOneMonth(StudentInfo student) {
         log.info("  → 正在按月续费一个月...");
         ApplyStudentCard rechargePacket = ApplyStudentCard.month(1).setStudentId(student.getStudentId());
@@ -325,7 +347,9 @@ public class PrintStudentStudy {
         }
     }
 
-    /** 回收刚续的月卡（退费一个月） */
+    /**
+     * 回收刚续的月卡（退费一个月）
+     */
     private static void refundRechargedDays(StudentInfo student) {
         log.info("  → 正在回收月卡（退掉刚续的一个月）...");
         RecoverMonth recover = RecoverMonth.of()

@@ -10,7 +10,6 @@ import lombok.experimental.ExtensionMethod;
 import me.xpyex.software.feedback.Main;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.packet.in.AYDResponse;
-import me.xpyex.software.feedback.packet.in.DataInfo;
 import me.xpyex.software.feedback.packet.in.GroupInfo;
 import me.xpyex.software.feedback.packet.out.SearchStudents;
 import me.xpyex.software.feedback.util.AiyouduUtil;
@@ -34,7 +33,6 @@ public class StudentReader {
      */
     private static final Map<Integer, StudentInfo> studentMap = new ConcurrentHashMap<>();
     private static final Map<String, Integer> groupIdByName = new ConcurrentHashMap<>();
-    private static final String dataInfoUrl = AiyouduUtil.orgUrl + "student/dataInfo?studentId={$id}";
 
     /**
      * 启动学生读取流程
@@ -137,14 +135,6 @@ public class StudentReader {
         }
     }
 
-    public static DataInfo getStudentData(int id) {
-        AYDResponse obj = AYDResponse.of(dataInfoUrl.replace("{$id}", "" + id).getUrlWithToken());
-        if (obj.isSuccess() && "成功".equals(obj.getMessage()) && obj.dataIsJsonObject()) {
-            return GsonUtil.getGson().fromJson(obj.getData(), DataInfo.class);
-        }
-        return null;
-    }
-
     public static List<StudentInfo> getAllStudents() {
         ArrayList<StudentInfo> list = new ArrayList<>();
         AYDResponse obj = AYDResponse.of(SearchStudents.url.postUrlWithToken(SearchStudents.of().setSize(100)));
@@ -157,19 +147,7 @@ public class StudentReader {
                 }
                 StudentInfo info = GsonUtil.getGson().fromJson(student, StudentInfo.class);
                 AiyouduUtil.log.info("{} {} {}", info.getStudentId(), info.getRealName(), info.getGroup());
-                list.add(
-                    info.setDataInfo(getStudentData(info.getStudentId()))
-                        .setGroupId(info.getGroup() != null ? getGroupId(info.getGroup()) : info.getGroupId())
-                );
-                if (info.getDataInfo() == null) {
-                    LogUtil.logNecessary("该学生暂未摸底: " + info.getRealName());
-                }
-                try {
-                    Thread.sleep(1500);  //等1.5秒
-                } catch (InterruptedException e) {
-                    Thread.currentThread().stop();
-                    return list;
-                }
+                list.add(info.setGroupId(info.getGroup() != null ? getGroupId(info.getGroup()) : info.getGroupId()));
             }
         }
         return list;

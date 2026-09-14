@@ -19,9 +19,7 @@ public class FinishedTaskPanel {
     private List<SinglePanel> listeningAndList;
     private int studyPhrase;  // 学习短语
     private int checkPhrase;  // 测试短语
-
-
-    public int getReviewWord() {
-        return reviewWord;
-    }
+    private int increasePhrase;  // 增长短语
+    private int phraseQuestion;  // 短语类学习时候做题量
+    private int phraseQuestionRate;  // 短语类学习正确率
 }

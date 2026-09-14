@@ -44,6 +44,13 @@ public class DeepSeekAnalyzer {
 
     // GUI选中的学生列表
     private static List<StudentInfo> selectedStudents = null;
+    // 本次特殊事件（单生反馈时老师填写；留空则不给 AI，填入则作为素材一并提供）
+    private static String specialEvent = null;
+
+    // 供 UI 在发起 AI 反馈前设置"本次特殊事件"；空串/空白等价于不提供
+    public static void setSpecialEvent(String event) {
+        specialEvent = (event == null || event.trim().isEmpty()) ? null : event.trim();
+    }
 
     public static void start() {
         startWithStudents(null);
@@ -89,6 +96,7 @@ public class DeepSeekAnalyzer {
             log.error("分析过程中发生错误：", e);
         } finally {
             selectedStudents = null;  // 清空
+            specialEvent = null;       // 清空本次特殊事件
         }
     }
 
@@ -216,8 +224,8 @@ public class DeepSeekAnalyzer {
             log.info("[{}/{}] 正在分析文件：{}", current, total, data.relativePath);
 
             try {
-                // 发送请求到 DeepSeek：若该生存有历史反馈，按全局配置把最近 N 条一并合并
-                String contentToSend = mergeHistoryIfAny(data);
+                // 发送请求到 DeepSeek：先合并该生最近 N 条历史反馈，再附上本次特殊事件（若有）
+                String contentToSend = applySpecialEvent(mergeHistoryIfAny(data), data);
 
                 String response = sendToDeepSeek(promptTemplate, contentToSend);
 
@@ -384,12 +392,14 @@ public class DeepSeekAnalyzer {
 
         log.info("√ 已附带该生最近 {} 条历史反馈", n);
         return "### 该学生最近 " + n + " 次历史反馈（请保持风格一致、避免重复内容）：\n"
-            + block
-            + "\n\n### 本次需要生成反馈的学情数据：\n"
-            + data.content;
+                   + block
+                   + "\n\n### 本次需要生成反馈的学情数据：\n"
+                   + data.content;
     }
 
-    /** 从文件相对路径解析学生 ID：students/{分组}_{姓名}_{id}/{姓名}日期.txt */
+    /**
+     * 从文件相对路径解析学生 ID：students/{分组}_{姓名}_{id}/{姓名}日期.txt
+     */
     private static Integer parseStudentId(FileData data) {
         try {
             File parent = new File(data.relativePath).getParentFile();
@@ -401,6 +411,23 @@ public class DeepSeekAnalyzer {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    /**
+     * 追加"本次特殊事件"（老师填写）。只作用于老师选中的该名学生，留空时不提供。
+     */
+    private static String applySpecialEvent(String content, FileData data) {
+        if (specialEvent == null || data == null) return content;
+        if (selectedStudents != null && !selectedStudents.isEmpty()) {
+            Integer studentId = parseStudentId(data);
+            if (studentId == null
+                    || selectedStudents.stream().noneMatch(s -> s.getStudentId() == studentId)) {
+                return content; // 不是本次选中的学生，不附带
+            }
+        }
+        return content
+                   + "\n\n### 本次特殊事件/情况补充（老师填写，请结合到本次反馈里）：\n"
+                   + specialEvent;
     }
 
     /**

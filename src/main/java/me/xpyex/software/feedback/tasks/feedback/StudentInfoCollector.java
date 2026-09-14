@@ -3,12 +3,13 @@ package me.xpyex.software.feedback.tasks.feedback;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Setter;
+import lombok.experimental.ExtensionMethod;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.packet.in.AYDResponse;
+import me.xpyex.software.feedback.packet.in.DataInfo;
 import me.xpyex.software.feedback.packet.in.FinishedTaskPanel;
 import me.xpyex.software.feedback.packet.in.SinglePanel;
 import me.xpyex.software.feedback.packet.util.StudyContentsUtil;
@@ -27,6 +28,7 @@ import org.slf4j.LoggerFactory;
  * 2. 获取所有有 group 值的学生
  * 3. 逐个获取学生信息和上周周报，保存到文件
  */
+@ExtensionMethod(AiyouduUtil.class)
 public class StudentInfoCollector {
     private static final Logger log = LoggerFactory.getLogger(StudentInfoCollector.class.getSimpleName());
     private static final String defInfo = """
@@ -34,17 +36,19 @@ public class StudentInfoCollector {
         ♦️【累计学情数据】
              摸底词汇: {$vocabularyStart}个
              当前词汇: {$vocabulary}个
-             现阅读力: 
+             摸底短语: {$phraseStart}个
+             当前短语: {$phraseNum}个
+             初阅读力: {$readAbilityStart}
+             现阅读力: {$readAbility}
         📚词汇部分
              学习词汇: {$studyWord}个
              测试词汇: {$checkWord}个
              词汇增长: {$increaseWord}个
              复习词汇: {$reviewWord}个
-          短语部分
-             摸底短语: {$phraseStart}个
-             当前短语: {$phraseNum}个
+        🧩短语部分
              学习短语: {$studyPhrase}个
-             短语增长: 
+             测试短语: {$checkPhrase}个
+             短语增长: {$increasePhrase}个
         """;
     private static final String panelInfo = """
         {$icon}{$task}
@@ -61,6 +65,7 @@ public class StudentInfoCollector {
                                                         "?studentId={$id}" +
                                                         "&startDate={$start}" +
                                                         "&endDate={$end}";
+    private static final String dataInfoUrl = AiyouduUtil.orgUrl + "student/dataInfo?studentId={$id}";
     @Setter
     public static String end;
     @Setter
@@ -114,7 +119,7 @@ public class StudentInfoCollector {
                 return;
             }
 
-            LogUtil.logNecessary(MessageFormat.format("找到 {} 个有 group 值的学生", validStudents.size()));
+            LogUtil.logNecessary("找到 {} 个有 group 值的学生", validStudents.size());
 
             // 步骤 3: 逐个获取学生信息和周报
             collectStudentInfos(validStudents);
@@ -172,11 +177,11 @@ public class StudentInfoCollector {
 
                 // 获取指定日期范围的周报
                 log.info("  正在获取周报...");
-                FinishedTaskPanel finishedTask = getStudentFinished(
-                    student.getStudentId(),
-                    start,
-                    end
-                );
+                FinishedTaskPanel finishedTask = getStudentFinished(student.getStudentId(), start, end);
+                student.setDataInfo(getStudentData(student.getStudentId()));
+                if (student.getDataInfo() == null) {
+                    LogUtil.logNecessary("该学生暂未摸底: " + student.getRealName());
+                }
 
                 if (finishedTask == null) {
                     log.error("  获取学生 {} 的周报失败", student.getRealName());
@@ -204,6 +209,14 @@ public class StudentInfoCollector {
                 }
             }
         }
+    }
+
+    public static DataInfo getStudentData(int id) {
+        AYDResponse obj = AYDResponse.of(dataInfoUrl.replace("{$id}", "" + id).getUrlWithToken());
+        if (obj.isSuccess() && "成功".equals(obj.getMessage()) && obj.dataIsJsonObject()) {
+            return GsonUtil.getGson().fromJson(obj.getData(), DataInfo.class);
+        }
+        return null;
     }
 
     /**
@@ -241,11 +254,24 @@ public class StudentInfoCollector {
                                  .replace("{$studyWord}", "" + finishedTask.getStudyWord())
                                  .replace("{$checkWord}", "" + finishedTask.getCheckWord())
                                  .replace("{$increaseWord}", "" + finishedTask.getIncreaseWord())
-                                 .replace("{$reviewWord}", "" + finishedTask.getReviewWord());
+                                 .replace("{$reviewWord}", "" + finishedTask.getReviewWord())
+                                 .replace("{$phraseStart}", studentInfo.getDataInfo().getPhraseStart() + "")
+                                 .replace("{$phraseNum}", studentInfo.getDataInfo().getPhraseNum() + "")
+                                 .replace("{$studyPhrase}", finishedTask.getStudyPhrase() + "")
+                                 .replace("{$checkPhrase}", finishedTask.getCheckPhrase() + "")
+                                 .replace("{$increasePhrase}", finishedTask.getIncreasePhrase() + "")
+                                 .replace("{$readAbilityStart}", (studentInfo.getDataInfo().getReadingAbility() - studentInfo.getDataInfo().getReadingAbilityAdd()) + "")
+                                 .replace("{$readAbility}", studentInfo.getDataInfo().getReadingAbility() + "");
 
             ArrayList<SinglePanel> tasks = new ArrayList<>();
             finishedTask.getWordAndReadList().forEach(panel -> taskFilter(panel, tasks));
             finishedTask.getListeningAndList().forEach(panel -> taskFilter(panel, tasks));
+            if (finishedTask.getIncreasePhrase() > 0 && finishedTask.getPhraseQuestion() > 0 && finishedTask.getPhraseQuestionRate() > 0) {
+                content += panelInfo.replace("{$icon}", "📖")
+                               .replace("{$task}", "短语学习")
+                               .replace("{$amount}", finishedTask.getPhraseQuestion() + "")
+                               .replace("{$rate}", finishedTask.getPhraseQuestionRate() + "");
+            }
 
             for (int i = 0; i < icons.length && i < tasks.size(); i++) {
                 SinglePanel singlePanel = tasks.get(i);
@@ -259,8 +285,8 @@ public class StudentInfoCollector {
                         studentInfo.getStudentId(),
                         singlePanel.getTitle().contains("纸面") ? StudyContentsUtil.FinishedType.FINISHED_PAPER : StudyContentsUtil.FinishedType.FINISHED_ONLINE,
                         studyType,
-                        Integer.parseInt(singlePanel.getAmount().replaceAll("[^0-9]", "")  //替换所有非数字的内容为空
-                        ));
+                        Integer.parseInt(singlePanel.getAmount().replaceAll("[^0-9]", ""))  //替换所有非数字的内容为空
+                    );
                     panel += "     平均难度: " + averageDifficulty + "\n";
                 }
                 if (singlePanel.getTitle().contains("口语")) {

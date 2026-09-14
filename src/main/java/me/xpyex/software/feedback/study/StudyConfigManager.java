@@ -3,6 +3,7 @@ package me.xpyex.software.feedback.study;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.LinkedHashMap;
 import me.xpyex.software.feedback.data.StudyConfig;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.util.GsonUtil;
@@ -15,14 +16,18 @@ import org.slf4j.LoggerFactory;
  * 文件名含真实姓名便于人工识别；当学生改名后仍能通过 "_studentId.json" 后缀兜底找到原配置。
  */
 public class StudyConfigManager {
-    private static final Logger log = LoggerFactory.getLogger(StudyConfigManager.class.getSimpleName());
-    /** 学案配置根目录 */
+    /**
+     * 学案配置根目录
+     */
     public static final String DIR = "config/study/";
+    private static final Logger log = LoggerFactory.getLogger(StudyConfigManager.class.getSimpleName());
 
     private StudyConfigManager() {
     }
 
-    /** 依据当前学生信息生成配置文件名（清理 Windows 非法字符） */
+    /**
+     * 依据当前学生信息生成配置文件名（清理 Windows 非法字符）
+     */
     public static File fileOf(StudentInfo student) {
         String name = sanitize(student.getRealName());
         return new File(DIR + name + "_" + student.getStudentId() + ".json");
@@ -37,7 +42,9 @@ public class StudyConfigManager {
         return name.replaceAll("[/\\\\:*?\"<>|]", "_").trim();
     }
 
-    /** 读取某学生的学案配置；不存在返回 null */
+    /**
+     * 读取某学生的学案配置；不存在返回 null
+     */
     public static StudyConfig load(StudentInfo student) {
         if (student == null) return null;
         File exact = fileOf(student);
@@ -63,7 +70,7 @@ public class StudyConfigManager {
             String content = Files.readString(file.toPath(), StandardCharsets.UTF_8);
             StudyConfig config = GsonUtil.parseObj(content, StudyConfig.class);
             if (config == null) return null;
-            if (config.getTypeCountMap() == null) config.setTypeCountMap(new java.util.LinkedHashMap<>());
+            if (config.getTypeCountMap() == null) config.setTypeCountMap(new LinkedHashMap<>());
             // 以最新学生信息覆盖 realName / studentId
             config.setStudentId(student.getStudentId());
             config.setRealName(student.getRealName());
@@ -74,7 +81,9 @@ public class StudyConfigManager {
         }
     }
 
-    /** 保存学案配置（自动以最新学生信息修正文件名对应的 id/姓名） */
+    /**
+     * 保存学案配置（自动以最新学生信息修正文件名对应的 id/姓名）
+     */
     public static boolean save(StudentInfo student, StudyConfig config) {
         if (student == null || config == null) return false;
         config.setStudentId(student.getStudentId());
@@ -82,7 +91,9 @@ public class StudyConfigManager {
         return save(config);
     }
 
-    /** 按配置自身的 id/姓名落盘 */
+    /**
+     * 按配置自身的 id/姓名落盘
+     */
     public static boolean save(StudyConfig config) {
         if (config == null) return false;
         File file = new File(DIR + sanitize(config.getRealName()) + "_" + config.getStudentId() + ".json");

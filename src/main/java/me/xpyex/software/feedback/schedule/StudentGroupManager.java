@@ -20,7 +20,9 @@ public class StudentGroupManager {
     private StudentGroupManager() {
     }
 
-    /** 该生所属的分组名列表（每个上课时段一个组名）；无配置或未排时段时为 ["未排课"] */
+    /**
+     * 该生所属的分组名列表（每个上课时段一个组名）；无配置或未排时段时为 ["未排课"]
+     */
     public static List<String> groupKeysOf(int studentId) {
         StudentSchedule schedule = ScheduleManager.load(studentId);
         if (schedule == null) return List.of(UNGROUPED);
@@ -53,8 +55,8 @@ public class StudentGroupManager {
 
         Map<String, List<StudentInfo>> ordered = new LinkedHashMap<>();
         Comparator<StudentInfo> studentOrder = Comparator
-            .comparingInt(StudentInfo::getGrade)
-            .thenComparing(StudentInfo::getRealName, Comparator.nullsLast(String::compareTo));
+                                                   .comparingInt(StudentInfo::getGrade)
+                                                   .thenComparing(StudentInfo::getRealName, Comparator.nullsLast(String::compareTo));
         for (String group : sortedGroups) {
             List<StudentInfo> list = map.get(group);
             list.sort(studentOrder);
@@ -63,7 +65,9 @@ public class StudentGroupManager {
         return ordered;
     }
 
-    /** 组的排序权重：每周几*3 + 时段序号；未分组排到最后 */
+    /**
+     * 组的排序权重：每周几*3 + 时段序号；未分组排到最后
+     */
     private static int rankOf(String group) {
         if (group == null || UNGROUPED.equals(group)) return Integer.MAX_VALUE;
         for (int w = 0; w < StudentSchedule.WEEK_DAYS.size(); w++) {

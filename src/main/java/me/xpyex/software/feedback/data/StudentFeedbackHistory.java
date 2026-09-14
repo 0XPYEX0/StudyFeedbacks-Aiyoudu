@@ -19,7 +19,9 @@ import lombok.experimental.Accessors;
 @NoArgsConstructor(staticName = "of")
 public class StudentFeedbackHistory {
     private int studentId;
-    /** 冗余保存真实姓名，用于生成可读的文件名 */
+    /**
+     * 冗余保存真实姓名，用于生成可读的文件名
+     */
     private String realName;
     private List<Record> records = new ArrayList<>();
 
@@ -27,9 +29,13 @@ public class StudentFeedbackHistory {
     @Accessors(chain = true)
     @NoArgsConstructor(staticName = "of")
     public static class Record {
-        /** 该次反馈对应的日期（ISO yyyy-MM-dd） */
+        /**
+         * 该次反馈对应的日期（ISO yyyy-MM-dd）
+         */
         private String date;
-        /** 反馈文本 */
+        /**
+         * 反馈文本
+         */
         private String text;
     }
 }

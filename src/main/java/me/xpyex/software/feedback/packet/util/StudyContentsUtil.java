@@ -1,5 +1,6 @@
 package me.xpyex.software.feedback.packet.util;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
@@ -7,6 +8,7 @@ import lombok.Getter;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.packet.in.AYDResponse;
 import me.xpyex.software.feedback.packet.in.StudyContentInfo;
+import me.xpyex.software.feedback.packet.out.PrintListening;
 import me.xpyex.software.feedback.util.AiyouduUtil;
 import me.xpyex.software.feedback.util.GsonUtil;
 
@@ -15,7 +17,7 @@ public class StudyContentsUtil {
     // articleId为文章ID，搜索时需要提供
     // studyType为完成情况，按照FinishedType枚举的ID操作
     // readType是文章类型，按照StudyType枚举的ID操作
-    public static final String PRINT_URL =
+    public static final String getStudiesUrl =
         AiyouduUtil.apiUrl + "student/study/applySupervisionPage?" + String.join("&",
             "article={$article}",
             "studyType={$finishedType}",
@@ -25,7 +27,10 @@ public class StudyContentsUtil {
         );
 
     public static String getPrintUrl(long studentId, FinishedType finishedType, StudyType studyType, int amount, Integer articleId) {
-        return PRINT_URL.replace("{$article}", articleId == null ? "" : articleId + "")
+        if (studyType == StudyType.LISTENING) {
+            return PrintListening.queryListeningUrl;
+        }
+        return getStudiesUrl.replace("{$article}", articleId == null ? "" : articleId + "")
                    .replace("{$finishedType}", finishedType.getId() + "")
                    .replace("{$studyType}", studyType.getId() + "")
                    .replace("{$amount}", amount + "")
@@ -80,6 +85,7 @@ public class StudyContentsUtil {
 
     @AllArgsConstructor
     public enum StudyType {
+        LISTENING(-999, "听力挑战"),
         NORMAL_READ(1, "精准阅读"),
         CHOOSE_FIVE_FROM_SEVEN(4, "七选五"),
         COMPLETION(5, "完形填空");  // 完形填空
@@ -93,12 +99,10 @@ public class StudyContentsUtil {
         public static StudyType getStudyTypeByName(String name) {
             if (name.contains("精准")) {
                 return NORMAL_READ;
-            } else if (name.contains("七选五")) {
-                return CHOOSE_FIVE_FROM_SEVEN;
             } else if (name.contains("完形")) {
                 return COMPLETION;
             }
-            return null;
+            return Arrays.stream(values()).filter(type -> type.getName().equals(name)).findAny().orElse(null);
         }
     }
 }
