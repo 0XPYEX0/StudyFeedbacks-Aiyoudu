@@ -17,7 +17,7 @@ public class StudyContentsUtil {
     // articleId为文章ID，搜索时需要提供
     // studyType为完成情况，按照FinishedType枚举的ID操作
     // readType是文章类型，按照StudyType枚举的ID操作
-    public static final String getStudiesUrl =
+    public static final String listStudyUrl =
         AiyouduUtil.apiUrl + "student/study/applySupervisionPage?" + String.join("&",
             "article={$article}",
             "studyType={$finishedType}",
@@ -26,19 +26,19 @@ public class StudyContentsUtil {
             "studentId={$id}"
         );
 
-    public static String getPrintUrl(long studentId, FinishedType finishedType, StudyType studyType, int amount, Integer articleId) {
+    public static String getListStudyUrl(long studentId, FinishedType finishedType, StudyType studyType, int amount, Integer articleId) {
         if (studyType == StudyType.LISTENING) {
             return PrintListening.queryListeningUrl;
         }
-        return getStudiesUrl.replace("{$article}", articleId == null ? "" : articleId + "")
+        return listStudyUrl.replace("{$article}", articleId == null ? "" : articleId + "")
                    .replace("{$finishedType}", finishedType.getId() + "")
                    .replace("{$studyType}", studyType.getId() + "")
                    .replace("{$amount}", amount + "")
                    .replace("{$id}", studentId + "");
     }
 
-    public static String getPrintUrl(StudentInfo studentInfo, FinishedType finishedType, StudyType studyType, int amount, Integer articleId) {
-        return getPrintUrl(studentInfo.getStudentId(), finishedType, studyType, amount, articleId);
+    public static String getListStudyUrl(StudentInfo studentInfo, FinishedType finishedType, StudyType studyType, int amount, Integer articleId) {
+        return getListStudyUrl(studentInfo.getStudentId(), finishedType, studyType, amount, articleId);
     }
 
     /**
@@ -51,7 +51,7 @@ public class StudyContentsUtil {
      * @return 学生在该题型的近期平均难度，取整。若为-1则失败
      */
     public static int getAverageDifficulty(long studentId, FinishedType finishedType, StudyType studyType, int averageAmount) {
-        String url = getPrintUrl(studentId, finishedType, studyType, averageAmount, null);
+        String url = getListStudyUrl(studentId, finishedType, studyType, averageAmount, null);
         AYDResponse response = AYDResponse.of(AiyouduUtil.getUrlWithToken(url));
         if (response.isSuccess()) {
             try {

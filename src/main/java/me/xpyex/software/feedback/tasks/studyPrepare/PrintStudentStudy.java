@@ -160,13 +160,13 @@ public class PrintStudentStudy {
         // 步骤 3: 临时把班级改为组名以便学案上突出，打印后恢复（沿用既有逻辑：同步月卡类型与计费方式）
         String originClassName = student.getClassName();
         try {
-            updateAndLog(student, "临时修改班级为分组名",
+            updateAndLog("临时修改班级为分组名",
                 student.setClassName(student.getGroup())
                     .setCardType(StudentInfo.CardType.IN_MONTHS.getCardType())
                     .setBillingType(0));
             printByTypes(student, config);
         } finally {
-            updateAndLog(student, "恢复原班级",
+            updateAndLog("恢复原班级",
                 student.setClassName(originClassName)
                     .setCardType(StudentInfo.CardType.IN_MONTHS.getCardType())
                     .setBillingType(0));
@@ -180,7 +180,7 @@ public class PrintStudentStudy {
         }
     }
 
-    private static void updateAndLog(StudentInfo student, String action, StudentInfo updated) {
+    private static void updateAndLog(String action, StudentInfo updated) {
         AYDResponse response = StudentUpdater.updateStudentInfo(updated);
         if (response != null && response.isSuccess()) {
             log.info("  √ {}", action);
@@ -207,12 +207,15 @@ public class PrintStudentStudy {
             }
             AYDResponse pdfLink;
             int size;
+            int perCopy = type == StudyType.NORMAL_READ ? ARTICLES_PER_COPY : 1;
             if (type == StudyType.LISTENING) {
                 PrintListening packet = PrintListening.of().setStudentId(student.getStudentId() + "");
                 ArrayList<String> links = new ArrayList<>();
                 for (int i = 0; i < count; i++) {
                     AYDResponse response = AYDResponse.of(PrintListening.queryListeningUrl.postUrlWithToken(packet));
-                    links.add(response.getDataAsJsonObject().get("printStudyUrl").getAsString());
+                    if (response.isSuccess() && response.dataIsJsonObject()) {
+                        links.add(response.getDataAsJsonObject().get("printStudyUrl").getAsString());
+                    }
                 }
                 pdfLink = AYDResponse.of(PrintListening.Merge.url.postUrlWithToken(PrintListening.Merge.of().addAll(links)));
                 size = links.size();
@@ -220,13 +223,11 @@ public class PrintStudentStudy {
                 log.info("  → 按题型打印：{} × {} 篇", typeName, count);
 
                 // 生成该题型的打印学案（每份最多 2 篇）
-                int fullCopies = count / ARTICLES_PER_COPY;
-                int remainder = count % ARTICLES_PER_COPY;
-                for (int i = 0; i < fullCopies; i++) {
-                    printOneCopy(student, ARTICLES_PER_COPY);
-                }
+                int fullCopies = count / perCopy;
+                int remainder = count % perCopy;
+                printCopy(student, perCopy, fullCopies, type);
                 if (remainder > 0) {
-                    printOneCopy(student, remainder);
+                    printCopy(student, remainder, 1, type);
                 }
 
                 // 汇总该题型刚生成的学案，PrintMerge 合并下载
@@ -249,13 +250,17 @@ public class PrintStudentStudy {
     }
 
     /**
-     * 发送一次打印学案请求（该题型的一"份"）
+     * 发送一次打印学案请求（该题型的x"份"）
      */
-    private static void printOneCopy(StudentInfo student, int articleNum) {
-        PrintStudy printPacket = PrintStudy.of().setStudentId(student.getStudentId()).setArticleNum(articleNum);
+    private static void printCopy(StudentInfo student, int articleNum, int printNum, StudyType type) {
+        PrintStudy printPacket = PrintStudy.of()
+                                     .setStudentId(student.getStudentId())
+                                     .setArticleNum(articleNum)
+                                     .setPrintType(type.getId())
+                                     .setPrintNum(printNum);
         AYDResponse response = AYDResponse.of(PrintStudy.url.postUrlWithToken(printPacket));
         if (response != null && response.isSuccess()) {
-            log.info("  √ 已生成学案 1 份（{} 篇）", articleNum);
+            log.info("  √ 已生成学案 {} 份（每份 {} 篇）", printNum, articleNum);
         } else {
             log.warn("  ! 打印请求失败：{}", response == null ? "无响应" : response.getMessage());
         }
@@ -267,9 +272,9 @@ public class PrintStudentStudy {
      */
     private static Set<Integer> queryPrintIds(StudentInfo student, StudyType type, int amount) {
         try {
-            String url = StudyContentsUtil.getPrintUrl(student, FinishedType.NOT_FINISHED, type, amount, null);
+            String url = StudyContentsUtil.getListStudyUrl(student, FinishedType.NOT_FINISHED, type, amount, null);
             AYDResponse response = AYDResponse.of(url.getUrlWithToken());
-            if (response != null && response.isSuccess() && "成功".equals(response.getMessage())) {
+            if (response != null && response.isSuccess()) {
                 return StudyContentsUtil.getStudyContents(response).stream()
                            .map(StudyContentInfo::getPrintId)
                            .filter(Objects::nonNull)

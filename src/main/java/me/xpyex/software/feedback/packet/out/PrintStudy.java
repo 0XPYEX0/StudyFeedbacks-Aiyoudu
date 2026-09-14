@@ -15,9 +15,9 @@ import me.xpyex.software.feedback.util.AiyouduUtil;
 // 打印学案
 public class PrintStudy extends AYDPacket {
     public static final String url = AiyouduUtil.apiUrl + "student/study/printSaveStudy";
-    private int printNum = 1;  //打印份数
+    private int printNum = 1;  //打印份数，就是生成新学案的旁边那个
     private int articleNum = 2;  //单份有几篇
-    private int printType = 1;  //待探究，先固定
+    private int printType = 1;  //打印的类型，根据StudyType来
     private int studentId;
 
     @Data

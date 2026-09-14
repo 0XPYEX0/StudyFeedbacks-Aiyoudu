@@ -74,6 +74,7 @@ public class StudentReader {
         for (StudentInfo student : getAllStudents()) {
             if (student.getGroup() != null
                     && !student.getGroup().trim().isEmpty()
+                    && !student.getGroup().contains("停课")
                     && !student.getGroup().contains("非正式")
                     && !student.getGroup().contains("体验")) {
                 studentMap.put(student.getStudentId(), student);
