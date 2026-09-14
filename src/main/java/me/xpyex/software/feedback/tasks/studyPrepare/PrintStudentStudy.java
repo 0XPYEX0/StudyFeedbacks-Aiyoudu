@@ -215,6 +215,8 @@ public class PrintStudentStudy {
                     AYDResponse response = AYDResponse.of(PrintListening.queryListeningUrl.postUrlWithToken(packet));
                     if (response.isSuccess() && response.dataIsJsonObject()) {
                         links.add(response.getDataAsJsonObject().get("printStudyUrl").getAsString());
+                    } else {
+                        LogUtil.logNecessary("打印 学生{} 的纸质学案 {} 过程出现错误，请注意", student.getRealName(), type.getName());
                     }
                 }
                 pdfLink = AYDResponse.of(PrintListening.Merge.url.postUrlWithToken(PrintListening.Merge.of().addAll(links)));

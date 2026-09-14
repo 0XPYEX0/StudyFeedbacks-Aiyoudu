@@ -19,7 +19,7 @@ public class StudyConfigManager {
     /**
      * 学案配置根目录
      */
-    public static final String DIR = "config/study/";
+    public static final String DIR = "data/study/";
     private static final Logger log = LoggerFactory.getLogger(StudyConfigManager.class.getSimpleName());
 
     private StudyConfigManager() {

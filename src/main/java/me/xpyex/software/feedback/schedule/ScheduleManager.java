@@ -35,13 +35,9 @@ public class ScheduleManager {
     /**
      * 课时配置根目录
      */
-    public static final String DIR = "config/schedule/";
+    public static final String DIR = "data/schedule/";
     public static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE;
     private static final Logger log = LoggerFactory.getLogger(ScheduleManager.class.getSimpleName());
-
-    private ScheduleManager() {
-        // 工具类，禁止实例化
-    }
 
     // ==================== 文件读写（{真实姓名}_{studentId}.json） ====================
 

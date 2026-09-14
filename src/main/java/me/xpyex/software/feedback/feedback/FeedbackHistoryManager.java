@@ -24,7 +24,7 @@ public class FeedbackHistoryManager {
     /**
      * 历史反馈存储目录
      */
-    public static final String DIR = "config/feedback/";
+    public static final String DIR = "data/feedback/";
     /**
      * 全局配置文件名（不含扩展名）：config/ai.json
      */
