@@ -1,5 +1,8 @@
 package me.xpyex.software.feedback;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
 import me.xpyex.software.feedback.tasks.basis.ApiTester;
 import me.xpyex.software.feedback.tasks.basis.StudentReader;
@@ -57,7 +60,9 @@ public class Main {
 
                 if (startDate.isEmpty()) {
                     // 使用默认的上周日期
-                    String[] lastWeekRange = TimeUtil.getLastWeekRange();
+                    String lastWeekStart = LocalDate.now().minusWeeks(1).with(DayOfWeek.MONDAY).format(DateTimeFormatter.ofPattern(TimeUtil.dateFormat));
+                    String lastWeekEnd = LocalDate.now().minusWeeks(1).with(DayOfWeek.SUNDAY).format(DateTimeFormatter.ofPattern(TimeUtil.dateFormat));
+                    String[] lastWeekRange = new String[]{lastWeekStart, lastWeekEnd};
                     StudentInfoCollector.setStart(lastWeekRange[0]);
                     StudentInfoCollector.setEnd(lastWeekRange[1]);
                     System.out.println("使用默认日期范围：" + lastWeekRange[0] + " ~ " + lastWeekRange[1]);

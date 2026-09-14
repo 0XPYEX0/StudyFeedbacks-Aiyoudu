@@ -13,7 +13,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import me.xpyex.software.feedback.data.StudentSchedule;
-import me.xpyex.software.feedback.data.StudentSchedule.SchedulePeriod;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.util.GsonUtil;
 import org.slf4j.Logger;
@@ -22,16 +21,15 @@ import org.slf4j.LoggerFactory;
 /**
  * 课时配置管理器：读写 config/schedule/{真实姓名}_{studentId}.json。
  * <p>
- * 一个学生一周可有多个上课时段（如 周五晚上 + 周六上午）。
- * <p>
- * 已上课的自动推算原则（过去不会被自动改写）：
+ * 只维护"学生有没有来"：
  * <ul>
- *     <li>历史 attendedDates（早于今天）一旦生成即冻结，仅在你在月历上点选请假/加课时增删；</li>
- *     <li>从未改过时段的排课，从 startDate 起按各时段每周固定日补齐；</li>
- *     <li>中途修改时段后，写入 updateDate=修改当天，<b>新时段自修改日起算、不去自动改动此前的旧记录</b>，
- *         旧时段的已上课保持原样，过去的误差你在月历里手动修正即可（点选过去日期补请假/加课）；</li>
- *     <li>已上课 = (各时段自生效日起每周固定日到昨天) - 请假 ∪ 加课(≤今天)</li>
+ *     <li>来了 → 记入 attendedDates（加课/补录同此）</li>
+ *     <li>没来 → 记入 leaveDates（请假/缺勤）</li>
+ *     <li>二者互斥，同一天只会在其中一边</li>
  * </ul>
+ * 自动补记：只把 {@code lastModify}（上次修改日）之后、今天之前的排课日补进 attended，
+ * 这样一周没开软件也不用手动补；{@code lastModify} 之前的历史保持原样、绝不回溯改写，
+ * 以免中途调课时把旧时段/新时段的课往前补算成"多算课时"。
  */
 public class ScheduleManager {
     /**
@@ -129,13 +127,15 @@ public class ScheduleManager {
     }
 
     /**
-     * 字段归一化：列表非空、去重、升序
+     * 字段归一化：列表非空、去重、升序；保证"来了/没来"互斥（以 attended 优先）
      */
     private static void normalize(StudentSchedule s) {
         s.setPeriods(s.getPeriods() == null ? new ArrayList<>() : s.getPeriods());
-        s.setLeaveDates(normalizeUnique(s.getLeaveDates()));
-        s.setExtraDates(normalizeUnique(s.getExtraDates()));
-        s.setAttendedDates(normalizeUnique(s.getAttendedDates()));
+        List<String> attended = normalizeUnique(s.getAttendedDates());
+        List<String> leave = normalizeUnique(s.getLeaveDates());
+        leave.removeAll(attended); // 同一天不会既来又没来
+        s.setAttendedDates(attended);
+        s.setLeaveDates(leave);
         if (s.getTotalLessons() < 0) s.setTotalLessons(0);
     }
 
@@ -176,20 +176,20 @@ public class ScheduleManager {
         return DayOfWeek.of(idx + 1); // DayOfWeek.MONDAY=1
     }
 
-    // ==================== attendedDates 重算 ====================
+    // ==================== 自动补记（仅 lastModify 之后） ====================
 
     /**
-     * 按今天重算 attendedDates 并保存。历史冻结、只追加不回溯，
-     * 请假剔除、加课补录。
+     * 自动补记并保存：把 lastModify 之后、今天之前的排课日补进 attended（跳过已标"没来"的日期）。
+     * 只做新增，绝不删除或改写任何已有记录。
      */
-    public static void recomputeAndSave(StudentSchedule s) {
+    public static void autoFillAndSave(StudentSchedule s) {
         if (s == null) return;
-        recompute(s, LocalDate.now());
+        autoFill(s, LocalDate.now());
         save(s);
     }
 
     /**
-     * 对一批学生重算并保存（自动带上最新姓名以写对文件名）
+     * 对一批学生自动补记（顺带写入最新姓名，保证文件名正确）
      */
     public static void recomputeAllStudents(Collection<? extends StudentInfo> students) {
         if (students == null) return;
@@ -198,96 +198,74 @@ public class ScheduleManager {
             StudentSchedule s = load(student.getStudentId());
             if (s != null) {
                 s.setRealName(student.getRealName());
-                recomputeAndSave(s);
+                autoFillAndSave(s);
             }
         }
     }
-
-    private static void recompute(StudentSchedule s, LocalDate today) {
-        Set<String> leave = new LinkedHashSet<>(s.getLeaveDates() == null ? List.of() : s.getLeaveDates());
-
-        // 1) 历史（早于今天）冻结保留，请假剔除
-        LinkedHashSet<String> result = new LinkedHashSet<>();
-        for (String iso : normalizeUnique(s.getAttendedDates())) {
-            LocalDate d = parseIso(iso);
-            if (d != null && d.isBefore(today) && !leave.contains(iso)) {
-                result.add(iso);
-            }
-        }
-
-        LocalDate start = parseIso(s.getStartDate());
-        // 生效日：中途改过时段则从 updateDate 起算，否则从 startDate 补齐
-        LocalDate effFrom = start;
-        LocalDate update = parseIso(s.getUpdateDate());
-        if (update != null && update.isAfter(effFrom)) {
-            effFrom = update;
-        }
-
-        // 2) 各时段自生效日起到昨天的每周固定上课日
-        if (start != null) {
-            for (SchedulePeriod p : s.getRealPeriods()) {
-                DayOfWeek dow = toDayOfWeek(p.getWeeklyDay());
-                if (dow == null) continue;
-                for (LocalDate d = effFrom; d.isBefore(today); d = d.plusDays(1)) {
-                    if (d.getDayOfWeek() == dow && !leave.contains(toIso(d))) {
-                        result.add(toIso(d));
-                    }
-                }
-            }
-        }
-
-        // 3) 加课补录（≤今天、不早于开始日期、不在请假）
-        if (s.getExtraDates() != null) {
-            for (String iso : s.getExtraDates()) {
-                LocalDate d = parseIso(iso);
-                if (d != null && !d.isAfter(today) && (start == null || !d.isBefore(start))
-                        && !leave.contains(iso)) {
-                    result.add(iso);
-                }
-            }
-        }
-
-        List<String> list = new ArrayList<>(result);
-        list.sort(String::compareTo);
-        s.setAttendedDates(list);
-    }
-
-    // ==================== 请假 / 加课（过去日期也可修改） ====================
 
     /**
-     * 切换请假日期。过去日期也可点选，用于纠正"学生实际没来但系统按排课记成有来"。
-     * 请假与加课互斥：标为请假时自动从加课中移除该日。
+     * 自动补记：扫描 [lastModify, 今天) 区间内所有排课日（不早于 startDate），
+     * 只要当天没有标"没来"就补进 attended。lastModify 为空时不做任何自动补记。
+     */
+    public static void autoFill(StudentSchedule s, LocalDate today) {
+        if (s == null || today == null) return;
+        LocalDate anchor = parseIso(s.getLastModify());
+        if (anchor == null) return; // 没有"上次修改日"就不自动推算
+        LocalDate start = parseIso(s.getStartDate());
+
+        List<String> attended = normalizeUnique(s.getAttendedDates());
+        Set<String> attendedSet = new LinkedHashSet<>(attended);
+        Set<String> leave = new LinkedHashSet<>(normalizeUnique(s.getLeaveDates()));
+
+        for (LocalDate d = anchor; d.isBefore(today); d = d.plusDays(1)) {
+            if (start != null && d.isBefore(start)) continue;
+            if (!s.isScheduledOn(d)) continue;      // 不是排课日
+            String iso = toIso(d);
+            if (leave.contains(iso)) continue;       // 已标"没来"
+            attendedSet.add(iso);                    // 只新增
+        }
+
+        List<String> result = new ArrayList<>(attendedSet);
+        result.sort(String::compareTo);
+        s.setAttendedDates(result);
+    }
+
+    // ==================== 来了 / 没来（过去、今天、未来都可点选） ====================
+
+    /**
+     * 标记"来了"：加入 attendedDates，并从 leaveDates 中移除（互斥）。重复点选即取消该标记。
+     *
+     * @return 是否发生了变更
+     */
+    public static boolean toggleAttended(StudentSchedule s, LocalDate date) {
+        if (s == null || date == null) return false;
+        String iso = toIso(date);
+        if (s.getAttendedDates() == null) s.setAttendedDates(new ArrayList<>());
+        if (s.getLeaveDates() == null) s.setLeaveDates(new ArrayList<>());
+        boolean already = s.getAttendedDates().remove(iso);
+        if (!already) {
+            s.getAttendedDates().add(iso);
+            s.getLeaveDates().remove(iso);
+            s.getAttendedDates().sort(String::compareTo);
+        }
+        return true;
+    }
+
+    /**
+     * 标记"没来"：加入 leaveDates，并从 attendedDates 中移除（互斥）。重复点选即取消该标记。
      *
      * @return 是否发生了变更
      */
     public static boolean toggleLeave(StudentSchedule s, LocalDate date) {
         if (s == null || date == null) return false;
         String iso = toIso(date);
+        if (s.getAttendedDates() == null) s.setAttendedDates(new ArrayList<>());
         if (s.getLeaveDates() == null) s.setLeaveDates(new ArrayList<>());
         boolean already = s.getLeaveDates().remove(iso);
         if (!already) {
             s.getLeaveDates().add(iso);
-            if (s.getExtraDates() != null) s.getExtraDates().remove(iso);
+            s.getAttendedDates().remove(iso);
             s.getLeaveDates().sort(String::compareTo);
-        }
-        return true;
-    }
-
-    /**
-     * 切换加课日期。过去日期也可点选，用于补录"学生实际来了但不在固定排课里"。
-     * 加课与请假互斥：标为加课时自动从请假中移除该日。
-     *
-     * @return 是否发生了变更
-     */
-    public static boolean toggleExtra(StudentSchedule s, LocalDate date) {
-        if (s == null || date == null) return false;
-        String iso = toIso(date);
-        if (s.getExtraDates() == null) s.setExtraDates(new ArrayList<>());
-        boolean already = s.getExtraDates().remove(iso);
-        if (!already) {
-            s.getExtraDates().add(iso);
-            if (s.getLeaveDates() != null) s.getLeaveDates().remove(iso);
-            s.getExtraDates().sort(String::compareTo);
         }
         return true;
     }
