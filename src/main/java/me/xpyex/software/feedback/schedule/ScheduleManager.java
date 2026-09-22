@@ -206,7 +206,7 @@ public class ScheduleManager {
     public static void autoFill(StudentSchedule s, LocalDate today) {
         if (s == null || today == null) return;
         LocalDate anchor = parseIso(s.getLastModify());
-        if (anchor == null) return; // 没有"上次修改日"就不自动推算
+        if (anchor == null) anchor = today; // 没有"上次修改日"就从今天开始
         LocalDate start = parseIso(s.getStartDate());
 
         List<String> attended = normalizeUnique(s.getAttendedDates());

@@ -4,10 +4,12 @@ import com.google.gson.JsonObject;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.experimental.ExtensionMethod;
+import me.xpyex.software.feedback.data.StudentSchedule;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.packet.in.AYDResponse;
 import me.xpyex.software.feedback.packet.out.ApplyStudentCard;
 import me.xpyex.software.feedback.packet.out.RecoverMonth;
+import me.xpyex.software.feedback.schedule.ScheduleManager;
 import me.xpyex.software.feedback.tasks.basis.StudentReader;
 import me.xpyex.software.feedback.util.AiyouduUtil;
 import me.xpyex.software.feedback.util.ConfigManager;
@@ -48,7 +50,11 @@ public class RenewStudentCard {
 
         studentMap.values().forEach(student -> {
             int day = 1;
-            if (config.has(student.getRealName())) day = config.get(student.getRealName()).getAsInt();
+            StudentSchedule schedule = ScheduleManager.load(student.getStudentId());
+            if (schedule != null) {
+                day = schedule.getPeriods().size();
+            } else if (config.has(student.getRealName()))
+                day = config.get(student.getRealName()).getAsInt();
             if (day > 0) {
                 if (student.getExpireDay() != 0) {  //天数非0的情况下
                     if (student.getCardType() == StudentInfo.CardType.IN_DAYS.getCardType()) {

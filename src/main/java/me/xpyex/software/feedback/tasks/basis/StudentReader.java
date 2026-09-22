@@ -71,7 +71,7 @@ public class StudentReader {
 
         studentMap.clear();
 
-        for (StudentInfo student : getAllStudents()) {
+        for (StudentInfo student : getAllStudentsFromAPI()) {
             if (student.getGroup() != null
                     && !student.getGroup().trim().isEmpty()
                     && !student.getGroup().contains("停课")
@@ -136,7 +136,7 @@ public class StudentReader {
         }
     }
 
-    public static List<StudentInfo> getAllStudents() {
+    public static List<StudentInfo> getAllStudentsFromAPI() {
         ArrayList<StudentInfo> list = new ArrayList<>();
         AYDResponse obj = AYDResponse.of(SearchStudents.url.postUrlWithToken(SearchStudents.of().setSize(100)));
         if (obj.isSuccess() && obj.dataIsJsonObject()) {

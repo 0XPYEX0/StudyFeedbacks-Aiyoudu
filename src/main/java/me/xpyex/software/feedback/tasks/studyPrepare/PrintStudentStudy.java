@@ -259,6 +259,8 @@ public class PrintStudentStudy {
                                      .setStudentId(student.getStudentId())
                                      .setArticleNum(articleNum)
                                      .setPrintType(type.getId())
+                                     .setGenerateAnalysis(false)
+                                     .setGenerateAnswer(false)
                                      .setPrintNum(printNum);
         AYDResponse response = AYDResponse.of(PrintStudy.url.postUrlWithToken(printPacket));
         if (response != null && response.isSuccess()) {

@@ -18,7 +18,19 @@ public class PrintStudy extends AYDPacket {
     private int printNum = 1;  //打印份数，就是生成新学案的旁边那个
     private int articleNum = 2;  //单份有几篇
     private int printType = 1;  //打印的类型，根据StudyType来
+    private int isAnalysis = 0;  // 是否包含文章解析
+    private int urlType = 1;  // URL的类型. 此处体现为生成学案时候是否生成答案，默认为不生成(1)，若需生成则设为0
     private int studentId;
+
+    public PrintStudy setGenerateAnalysis(boolean analysis) {
+        this.isAnalysis = analysis ? 1 : 0;
+        return this;
+    }
+
+    public PrintStudy setGenerateAnswer(boolean answer) {
+        this.urlType = answer ? 0 : 1;  // 生成是0，不生成是1
+        return this;
+    }
 
     @Data
     @Accessors(chain = true)
