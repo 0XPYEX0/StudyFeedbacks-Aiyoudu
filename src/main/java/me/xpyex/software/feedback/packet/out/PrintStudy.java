@@ -35,17 +35,38 @@ public class PrintStudy extends AYDPacket {
     @Data
     @Accessors(chain = true)
     @NoArgsConstructor(staticName = "of")
-    public static class PrintMerge extends AYDPacket {
+    public static class LegacyMergeStudy extends AYDPacket {
         public static final String url = AiyouduUtil.apiUrl + "student/study/printMerge";
         private final List<Integer> printIds = new ArrayList<>();
 
-        public PrintMerge add(int id) {
+        public LegacyMergeStudy add(int id) {
             printIds.add(id);
             return this;
         }
 
-        public PrintMerge addAll(Collection<Integer> collection) {
+        public LegacyMergeStudy addAll(Collection<Integer> collection) {
             printIds.addAll(collection);
+            return this;
+        }
+    }
+
+    @Data
+    @Accessors(chain = true)
+    @NoArgsConstructor(staticName = "of")
+    public static class MergeStudySplit extends AYDPacket {
+        public static final String url = AiyouduUtil.apiUrl + "article/print/mergeSplit";
+
+        private String studentId;
+        private int type;  // 打印类型，0为全部，1为仅题目，2为仅答案，3为仅解析
+        private final List<String> urlList = new ArrayList<>();
+
+        public MergeStudySplit addUrl(String url) {
+            urlList.add(url);
+            return this;
+        }
+
+        public MergeStudySplit addAll(Collection<String> collection) {
+            urlList.addAll(collection);
             return this;
         }
     }

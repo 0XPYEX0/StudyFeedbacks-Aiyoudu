@@ -12,6 +12,6 @@ public class StudyContentInfo {
     private int articleId;  //文章ID
     private int articleLength;  //文章长度
     private int difficulty;  //文章难度
-    private String printStudyUrl = "";  //学案下载链接，不一定存在，有时没有生成纸质格式
+    private String printStudyUrl;  //学案下载链接，不一定存在，有时没有生成纸质格式
     private Integer printId;  // 打印的学案ID，不一定存在，有时没有生成纸质格式
 }

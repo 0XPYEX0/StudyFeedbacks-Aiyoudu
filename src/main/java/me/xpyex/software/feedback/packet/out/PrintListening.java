@@ -1,8 +1,5 @@
 package me.xpyex.software.feedback.packet.out;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
@@ -18,22 +15,4 @@ public class PrintListening extends AYDPacket {
     private String studentId;  // 它后台这里又用了String
     private int shortNum = 6;
     private int longNum = 8;
-
-    @Data
-    @Accessors(chain = true)
-    @NoArgsConstructor(staticName = "of")
-    public static class Merge {
-        public static final String url = "https://group.aiyoudu.cn/api2/student/study/printMergePdf";
-        private List<String> urlPdfList = new ArrayList<>();
-
-        public Merge add(String link) {
-            urlPdfList.add(link);
-            return this;
-        }
-
-        public Merge addAll(Collection<String> links) {
-            urlPdfList.addAll(links);
-            return this;
-        }
-    }
 }

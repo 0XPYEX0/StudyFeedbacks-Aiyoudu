@@ -2,6 +2,7 @@ package me.xpyex.software.feedback.tasks.studyPrepare;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.packet.in.AYDResponse;
 import me.xpyex.software.feedback.packet.in.StudyContentInfo;
 import me.xpyex.software.feedback.packet.out.ApplyStudentCard;
+import me.xpyex.software.feedback.packet.out.MergePdf;
 import me.xpyex.software.feedback.packet.out.PrintListening;
 import me.xpyex.software.feedback.packet.out.PrintStudy;
 import me.xpyex.software.feedback.packet.out.RecoverDay;
@@ -194,6 +196,7 @@ public class PrintStudentStudy {
      * 再将刚生成的该题型学案 printId 通过 PrintMerge 合并成一个 PDF 下载。
      */
     private static void printByTypes(StudentInfo student, StudyConfig config) {
+        Set<AYDResponse> pdfToMerge = new HashSet<>();
         config.getTypeCountMap().forEach((typeName, count) -> {
             if (count == null || count <= 0) {
                 log.debug("  跳过题型 {}（篇数 {}）", typeName, count);
@@ -205,56 +208,75 @@ public class PrintStudentStudy {
                 log.warn("  ! 未知题型：{}，已跳过", typeName);
                 return;
             }
-            AYDResponse pdfLink;
-            int size;
+            AYDResponse singleTypeFinalUrl;
             int perCopy = type == StudyType.NORMAL_READ ? ARTICLES_PER_COPY : 1;
             if (type == StudyType.LISTENING) {
-                PrintListening packet = PrintListening.of().setStudentId(student.getStudentId() + "");
-                ArrayList<String> links = new ArrayList<>();
-                for (int i = 0; i < count; i++) {
-                    AYDResponse response = AYDResponse.of(PrintListening.queryListeningUrl.postUrlWithToken(packet));
-                    if (response.isSuccess() && response.dataIsJsonObject()) {
-                        links.add(response.getDataAsJsonObject().get("printStudyUrl").getAsString());
-                    } else {
-                        LogUtil.logNecessary("打印 学生{} 的纸质学案 {} 过程出现错误，请注意", student.getRealName(), type.getName());
-                    }
-                }
-                pdfLink = AYDResponse.of(PrintListening.Merge.url.postUrlWithToken(PrintListening.Merge.of().addAll(links)));
-                size = links.size();
+                singleTypeFinalUrl = printListeningStudy(student, count);
             } else {
                 log.info("  → 按题型打印：{} × {} 篇", typeName, count);
 
                 // 生成该题型的打印学案（每份最多 2 篇）
                 int fullCopies = count / perCopy;
                 int remainder = count % perCopy;
-                printCopy(student, perCopy, fullCopies, type);
+                for (int i = 0; i < fullCopies; i++) {
+                    printCopy(student, perCopy, 1, type);
+                }
                 if (remainder > 0) {
                     printCopy(student, remainder, 1, type);
                 }
 
                 // 汇总该题型刚生成的学案，PrintMerge 合并下载
-                Set<Integer> printIds = queryPrintIds(student, type, count);
-                if (printIds.isEmpty()) {
+                Set<String> printLinks = queryPrintUrls(student, type, count);
+                if (printLinks.isEmpty()) {
                     log.warn("  ! 未获取到题型 {} 的打印学案（可能未生成纸质版），跳过合并下载", typeName);
                     return;
                 }
-                pdfLink = AYDResponse.of(PrintStudy.PrintMerge.url.postUrlWithToken(PrintStudy.PrintMerge.of().addAll(printIds)));
-                size = printIds.size();
+                singleTypeFinalUrl = AYDResponse.of(
+                    PrintStudy.MergeStudySplit.url
+                        .postUrlWithToken(PrintStudy.MergeStudySplit.of()
+                                              .setType(1)  // 仅题目
+                                              .setStudentId(student.getStudentId() + "")
+                                              .addAll(printLinks)
+                        )
+                );
             }
-            if (pdfLink.isSuccess()) {
-                log.info("  √ 题型 {} 学案合并完成，开始下载（{} 个学案）", typeName, size);
-                downloadPdf(pdfLink.getData().getAsString(), student, typeName);
+            if (singleTypeFinalUrl.isSuccess()) {
+                log.info("  √ 题型 {} 学案合并完成", typeName);
+                pdfToMerge.add(singleTypeFinalUrl);
             } else {
-                log.warn("  ! 题型 {} 学案合并失败：{}", typeName, pdfLink.getMessage());
+                log.warn("  ! 题型 {} 学案合并失败：{}", typeName, singleTypeFinalUrl.getMessage());
             }
             TimeUtil.sleep(1000);
         });
+
+        if (!pdfToMerge.isEmpty()) {
+            AYDResponse mergeResult = AYDResponse.of(MergePdf.url.postUrlWithToken(MergePdf.of().addAll(
+                pdfToMerge.stream()
+                    .map(response -> response.getData().getAsString())
+                    .collect(Collectors.toSet())
+            )));
+            downloadPdf(mergeResult.getData().getAsString(), student, "所有题型合并结果");
+        }
+    }
+
+    private static AYDResponse printListeningStudy(StudentInfo student, int count) {
+        PrintListening packet = PrintListening.of().setStudentId(student.getStudentId() + "");
+        ArrayList<String> links = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            AYDResponse response = AYDResponse.of(PrintListening.queryListeningUrl.postUrlWithToken(packet));
+            if (response.isSuccess() && response.dataIsJsonObject()) {
+                links.add(response.getDataAsJsonObject().get("printStudyUrl").getAsString());
+            } else {
+                LogUtil.logNecessary("打印 学生{} 的纸质学案 {} 过程出现错误，请注意", student.getRealName(), StudyType.LISTENING.getName());
+            }
+        }
+        return AYDResponse.of(MergePdf.url.postUrlWithToken(MergePdf.of().addAll(links)));
     }
 
     /**
      * 发送一次打印学案请求（该题型的x"份"）
      */
-    private static void printCopy(StudentInfo student, int articleNum, int printNum, StudyType type) {
+    private static AYDResponse printCopy(StudentInfo student, int articleNum, int printNum, StudyType type) {
         PrintStudy printPacket = PrintStudy.of()
                                      .setStudentId(student.getStudentId())
                                      .setArticleNum(articleNum)
@@ -263,24 +285,26 @@ public class PrintStudentStudy {
                                      .setGenerateAnswer(false)
                                      .setPrintNum(printNum);
         AYDResponse response = AYDResponse.of(PrintStudy.url.postUrlWithToken(printPacket));
+        TimeUtil.sleep(500);
         if (response != null && response.isSuccess()) {
             log.info("  √ 已生成学案 {} 份（每份 {} 篇）", printNum, articleNum);
+            return response;
         } else {
             log.warn("  ! 打印请求失败：{}", response == null ? "无响应" : response.getMessage());
         }
-        TimeUtil.sleep(500);
+        return null;
     }
 
     /**
-     * 拉取某学生某题型待反馈的学案 printId（用于合并）
+     * 拉取某学生某题型待反馈的学案 printUrl（用于合并）
      */
-    private static Set<Integer> queryPrintIds(StudentInfo student, StudyType type, int amount) {
+    private static Set<String> queryPrintUrls(StudentInfo student, StudyType type, int amount) {
         try {
             String url = StudyContentsUtil.getListStudyUrl(student, FinishedType.NOT_FINISHED, type, amount, null);
             AYDResponse response = AYDResponse.of(url.getUrlWithToken());
             if (response != null && response.isSuccess()) {
                 return StudyContentsUtil.getStudyContents(response).stream()
-                           .map(StudyContentInfo::getPrintId)
+                           .map(StudyContentInfo::getPrintStudyUrl)
                            .filter(Objects::nonNull)
                            .collect(Collectors.toCollection(LinkedHashSet::new));
             }
