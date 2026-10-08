@@ -134,7 +134,7 @@ public class Main {
         System.out.println("【2】readStudents         读取学生信息并保存到内存（需先执行 1）");
         System.out.println("【3】collect[Profiles]    尝试登录，并收集所有信息，然后记录 [需先执行 2]");
         System.out.println("【4】feedback             将根据收集到的所有信息，交给 AI 生成一份点评 [需先执行 3]");
-        System.out.println("【5】printStudy           批量打印学案（按月续费 -> 按学案设置分题型打印 -> 可选回收月卡）[需先执行 2，学生需已配置 config/study/*.json]");
+        System.out.println("【5】printStudy           批量打印学案（按月续费 -> 按学案设置分题型打印 -> 可选回收月卡）[需先执行 2，学生需已配置 data/study/*.json]");
         System.out.println("【6】renewCard            批量续费学生卡 [需先执行 2]");
         System.out.println("【G】getURL               测试 GET API（自动携带 Token）");
         System.out.println("【P】postURL              测试 POST API（自动携带 Token 和请求体）");

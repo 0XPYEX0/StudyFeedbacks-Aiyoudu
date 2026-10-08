@@ -22,13 +22,11 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTabbedPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import me.xpyex.software.feedback.data.StudentSchedule;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.schedule.ScheduleManager;
-import me.xpyex.software.feedback.schedule.StudentGroupManager;
 import me.xpyex.software.feedback.tasks.basis.StudentReader;
 import me.xpyex.software.feedback.tasks.basis.TokenGetter;
 import me.xpyex.software.feedback.tasks.feedback.DeepSeekAnalyzer;
@@ -40,7 +38,7 @@ import me.xpyex.software.feedback.util.TaskExecutor;
 import me.xpyex.software.feedback.util.TimeUtil;
 
 /**
- * 主窗口：顶部操作按钮 + 中间学生表格（全部/按时段分组），日志统一输出到控制台。
+ * 主窗口：顶部操作按钮 + 中间学生列表（不再分组），日志统一输出到控制台。
  * <p>
  * 每行代表一名学生：勾选框 | 学生姓名 | 年级 | 剩余课次(≤5 红字加粗) | 课时安排 | 学案设置 | 修改信息 | 反馈相关
  */
@@ -48,7 +46,8 @@ public class MainWindow extends JFrame {
     public static MainWindow current;
 
     private final Set<Integer> selectedIds = new LinkedHashSet<>();
-    private final JTabbedPane tabbedPane = new JTabbedPane();
+    /** 学生列表容器（单一视图，不再按时段分组） */
+    private final JPanel listContainer = new JPanel(new BorderLayout());
 
     private JLabel statusLabel;
     private JButton btnGetToken;
@@ -114,8 +113,7 @@ public class MainWindow extends JFrame {
 
         mainPanel.add(createTopBar(), BorderLayout.NORTH);
 
-        tabbedPane.setFont(new Font("微软雅黑", Font.PLAIN, 13));
-        mainPanel.add(tabbedPane, BorderLayout.CENTER);
+        mainPanel.add(listContainer, BorderLayout.CENTER);
 
         statusLabel = new JLabel("就绪");
         statusLabel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
@@ -239,14 +237,12 @@ public class MainWindow extends JFrame {
     }
 
     /**
-     * 刷新整个中部区域：重算所有在生课时 → 重建「全部」与各分组标签页。
-     * 必须在 EDT 上调用。
+     * 刷新中部区域：重建学生列表（单一视图，不再分组）。必须在 EDT 上调用。
      */
     public void refreshAll() {
         Map<Integer, StudentInfo> students = StudentReader.copyStudents();
-        ScheduleManager.recomputeAllStudents(students.values()); // 保持剩余课次随日期滚动（顺带写对文件名）
 
-        tabbedPane.removeAll();
+        listContainer.removeAll();
         selectedIds.retainAll(students.keySet());
 
         if (students.isEmpty()) {
@@ -255,27 +251,24 @@ public class MainWindow extends JFrame {
             empty.setForeground(Color.GRAY);
             JPanel p = new JPanel(new BorderLayout());
             p.add(empty, BorderLayout.CENTER);
-            tabbedPane.addTab("全部学生", p);
+            listContainer.add(p, BorderLayout.CENTER);
         } else {
             List<StudentInfo> all = students.values().stream()
                                         .sorted(Comparator.comparingInt(StudentInfo::getGrade)
                                                     .thenComparing(StudentInfo::getRealName,
                                                         Comparator.nullsLast(String::compareTo)))
                                         .toList();
-
-            tabbedPane.addTab("全部学生", buildStudentTab(all));
-            Map<String, List<StudentInfo>> groups = StudentGroupManager.groupBy(all);
-            for (Map.Entry<String, List<StudentInfo>> entry : groups.entrySet()) {
-                tabbedPane.addTab(entry.getKey(), buildStudentTab(entry.getValue()));
-            }
+            listContainer.add(buildStudentList(all), BorderLayout.CENTER);
         }
+        listContainer.revalidate();
+        listContainer.repaint();
         updateStatusLabel();
     }
 
     /**
-     * 构建一个标签页：表头(含全选) + 可滚动学生行
+     * 构建学生列表：表头(含全选) + 可滚动学生行
      */
-    private JPanel buildStudentTab(List<StudentInfo> students) {
+    private JPanel buildStudentList(List<StudentInfo> students) {
         JPanel content = new JPanel(new BorderLayout());
 
         List<JCheckBox> rowBoxes = new ArrayList<>();
@@ -386,7 +379,8 @@ public class MainWindow extends JFrame {
         JLabel label = new JLabel("—", JLabel.CENTER);
         label.setFont(new Font("微软雅黑", Font.PLAIN, 13));
         if (schedule != null) {
-            int remaining = schedule.remainingLessons();
+            // 已上课次数来源见 ScheduleManager.attendedCount(...) 的 TODO 占位
+            int remaining = ScheduleManager.remainingLessons(schedule);
             label.setText(String.valueOf(remaining));
             if (remaining <= 5) {
                 label.setFont(new Font("微软雅黑", Font.BOLD, 13));

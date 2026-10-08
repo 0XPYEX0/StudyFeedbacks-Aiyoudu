@@ -15,9 +15,6 @@ import org.slf4j.LoggerFactory;
 public class StudentUpdater {
     private static final Logger log = LoggerFactory.getLogger(StudentUpdater.class.getSimpleName());
 
-    private StudentUpdater() {
-    }
-
     /**
      * PUT 提交学生信息到服务端。
      *

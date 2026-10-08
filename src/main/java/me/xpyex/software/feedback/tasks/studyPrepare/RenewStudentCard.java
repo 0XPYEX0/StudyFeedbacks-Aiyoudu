@@ -50,10 +50,9 @@ public class RenewStudentCard {
 
         studentMap.values().forEach(student -> {
             int day = 1;
-            StudentSchedule schedule = ScheduleManager.load(student.getStudentId());
-            if (schedule != null) {
-                day = schedule.getPeriods().size();
-            } else if (config.has(student.getRealName()))
+            // TODO 原“按每周上课时段数决定续费天数”已随「上课时段」功能一并移除，
+            //      如需其它来源（课程包/服务器接口等）请在此接入；目前回退为续费配置 config/renew.json。
+            if (config.has(student.getRealName()))
                 day = config.get(student.getRealName()).getAsInt();
             if (day > 0) {
                 if (student.getExpireDay() != 0) {  //天数非0的情况下

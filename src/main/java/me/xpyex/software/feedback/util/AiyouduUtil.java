@@ -7,6 +7,7 @@ import java.net.http.HttpResponse;
 import java.util.HashMap;
 import java.util.Map;
 import me.xpyex.software.feedback.Main;
+import me.xpyex.software.feedback.packet.in.AYDResponse;
 import org.slf4j.Logger;
 
 public class AiyouduUtil {
@@ -19,6 +20,10 @@ public class AiyouduUtil {
 
     public static boolean hasToken() {
         return token != null && !token.isEmpty();
+    }
+
+    public static AYDResponse toResponse(String jsonUrl) {
+        return AYDResponse.of(jsonUrl);
     }
 
     public static String getUrlWithToken(String apiUrl) {

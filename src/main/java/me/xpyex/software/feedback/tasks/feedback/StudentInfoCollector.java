@@ -124,9 +124,9 @@ public class StudentInfoCollector {
             // 步骤 3: 逐个获取学生信息和周报
             collectStudentInfos(validStudents);
 
-            LogUtil.logNecessary("========================================");
+            LogUtil.line();
             LogUtil.logNecessary("   所有学生信息采集完成！");
-            LogUtil.logNecessary("========================================");
+            LogUtil.line();
 
         } catch (Exception e) {
             log.error("采集过程中发生错误：", e);

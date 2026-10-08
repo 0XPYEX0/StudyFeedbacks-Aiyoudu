@@ -352,8 +352,7 @@ public class PrintStudentStudy {
             RecoverDay recoverDay = RecoverDay.of()
                                         .setStudentId(student.getStudentId())
                                         .setDay(expireDay);
-            AYDResponse response = AYDResponse.of(
-                AiyouduUtil.apiUrl + "platform/change/studentRecoverDay".postUrlWithToken(recoverDay));
+            AYDResponse response = RecoverDay.url.postUrlWithToken(recoverDay).toResponse();
             if (response != null && response.isSuccess()) {
                 log.info("  √ 退费请求已发送");
             } else {

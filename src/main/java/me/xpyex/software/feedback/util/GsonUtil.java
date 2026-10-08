@@ -2,6 +2,7 @@ package me.xpyex.software.feedback.util;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import lombok.Getter;
 
@@ -21,5 +22,9 @@ public class GsonUtil {
 
     public static <T> T parseObj(String json, Class<T> clazz) {
         return gson.fromJson(json, clazz);
+    }
+
+    public static <T> T parseObj(JsonElement json, Class<T> clazz) {
+        return getGson().fromJson(json, clazz);
     }
 }
