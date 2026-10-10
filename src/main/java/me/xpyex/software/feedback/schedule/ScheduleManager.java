@@ -7,7 +7,10 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import lombok.Getter;
 import lombok.experimental.ExtensionMethod;
 import me.xpyex.software.feedback.data.StudentSchedule;
 import me.xpyex.software.feedback.packet.in.AYDResponse;
@@ -31,6 +34,8 @@ public class ScheduleManager {
     public static final String DIR = "data/schedule/";
     public static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE;
     private static final Logger log = LoggerFactory.getLogger(ScheduleManager.class.getSimpleName());
+    @Getter
+    private static final Map<String, Integer> studentCount = new ConcurrentHashMap<>();  // 学生ID+日期, 剩余课时      避免一直远程get
 
 
     // ==================== 文件读写（{真实姓名}_{studentId}.json） ====================
@@ -125,7 +130,6 @@ public class ScheduleManager {
     /**
      * 已上课次数。
      * <p>
-     * <b>TODO 数据来源待接入</b>：本地不再记录考勤，等确定由服务器接口（或其它来源）提供后在此实现。
      * 目前占位返回 0，因此「剩余课次」暂时等于总次数。
      *
      * @param schedule 学生课时配置
@@ -134,31 +138,50 @@ public class ScheduleManager {
     public static int attendedCount(StudentSchedule schedule) {
         if (schedule.getStartDate() == null) return 0;
 
-        Set<String> dates = new HashSet<>();
         LocalDate chargeDate = parseIso(schedule.getStartDate());
-        LocalDate firstMonth = chargeDate.withDayOfMonth(1);  // 收费那个月开始算
-        LocalDate lastMonth = LocalDate.now().withDayOfMonth(1);  // 到现在这个月的为止
+        return getStudyDaysAfterDate(schedule, chargeDate);
+    }
 
-        if (firstMonth.isAfter(LocalDate.now())) return 0;  // 如果计费日期还在今天之后，那不用计算了
+    /**
+     * 计算自从某日期后学生学习(打卡)了几天
+     *
+     * @param schedule 学生的信息相关
+     * @param date 从该日期开始算
+     * @return 上了几次课，或没上课为0
+     */
+    public static int getStudyDaysAfterDate(StudentSchedule schedule, LocalDate date) {
+        String key = schedule.getStudentId() + " " + toIso(date);
+        if (!studentCount.containsKey(key)) {
+            Set<String> dates = new HashSet<>();
+            LocalDate firstMonth = date.withDayOfMonth(1);  // 收费那个月开始算
+            LocalDate lastMonth = LocalDate.now().withDayOfMonth(1);  // 到现在这个月的为止
 
-        LocalDate computingMonth = firstMonth;
-        while (!computingMonth.isAfter(lastMonth)) {  // 只要计算中的这个月份不在当月之后，就算
-            AYDResponse response = StudentSignIn.url
-                                       .replace("{$student}", schedule.getStudentId() + "")
-                                       .replace("{$monthFirstDay}", toIso(computingMonth))  // 计算某个月的打卡天数
-                                       .getUrlWithToken().toResponse();
-            if (response.isSuccess() && response.dataIsJsonObject()) {
-                StudentSignIn studentSignIn = response.getDataAsJsonObject().parseObj(StudentSignIn.class);
-                studentSignIn.getSignINList().stream()
-                    .filter(signIn -> signIn.getBronzeCount() + signIn.getSilverCount() + signIn.getGoldCount() > 0)  // 有打卡的日期
-                    .filter(signIn -> !chargeDate.isAfter(parseIso(signIn.getDay())))  // 只要收费日期不在打卡期前面就可以，即可以在后面或者等同
-                    .forEach(signIn -> dates.add(signIn.getDay()));
+            if (firstMonth.isAfter(LocalDate.now())) return 0;
+
+            LocalDate computingMonth = firstMonth;
+            while (!computingMonth.isAfter(lastMonth)) {  // 只要计算中的这个月份不在当月之后，就算
+                TimeUtil.sleep(50);  // 每一次缓50ms，免得AYD死掉了
+                AYDResponse response = StudentSignIn.url
+                                           .replace("{$student}", schedule.getStudentId() + "")
+                                           .replace("{$monthFirstDay}", toIso(computingMonth))  // 计算某个月的打卡天数
+                                           .getUrlWithToken().toResponse();
+                if (response.isSuccess() && response.dataIsJsonObject()) {
+                    StudentSignIn studentSignIn = response.getDataAsJsonObject().parseObj(StudentSignIn.class);
+                    if (studentSignIn.getSignINList() == null) {
+                        computingMonth = computingMonth.plusMonths(1);  // 加一个月上去计算
+                        continue;  // 检测的这个月没有打卡，就不用算了
+                    }
+                    studentSignIn.getSignINList().stream()
+                        .filter(signIn -> signIn.getBronzeCount() + signIn.getSilverCount() + signIn.getGoldCount() > 0)  // 有打卡的日期
+                        .filter(signIn -> !date.isAfter(parseIso(signIn.getDay())))  // 只要收费日期不在打卡期前面就可以，即可以在后面或者等同
+                        .forEach(signIn -> dates.add(signIn.getDay()));
+                }
+
+                computingMonth = computingMonth.plusMonths(1);  // 加一个月上去计算
             }
-
-            computingMonth = computingMonth.plusMonths(1);  // 加一个月上去计算
-            TimeUtil.sleep(50);  // 每一次缓50ms，免得AYD死掉了
+            studentCount.put(key, dates.size());
         }
-        return dates.size();
+        return studentCount.get(key);
     }
 
     /** 剩余课次 = 总次数 − 已上课次数（已上课次数来源见 {@link #attendedCount}） */

@@ -19,6 +19,7 @@ import javax.swing.JTextField;
 import me.xpyex.software.feedback.data.StudentSchedule;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.schedule.ScheduleManager;
+import me.xpyex.software.feedback.util.LogUtil;
 
 /**
  * 课时安排弹窗（单名学生）：只维护「当前计费开始日期 + 总次数」，改动即保存。
@@ -66,7 +67,7 @@ public class ScheduleDialog extends JDialog {
         JPanel main = new JPanel(new BorderLayout(10, 10));
         main.setBorder(BorderFactory.createEmptyBorder(14, 16, 14, 16));
 
-        JLabel hint = new JLabel("填写该学生的计费开始日期与总次数，改动即保存。");
+        JLabel hint = new JLabel("填写该学生的计费开始日期与总次数");
         hint.setFont(new Font("微软雅黑", Font.PLAIN, 13));
         main.add(hint, BorderLayout.NORTH);
 
@@ -97,33 +98,14 @@ public class ScheduleDialog extends JDialog {
 
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 4));
         JButton save = new JButton("保存");
-        JButton close = new JButton("完成");
-        save.addActionListener(e -> persist());
-        close.addActionListener(e -> {
+        save.addActionListener(e -> {
             persist();
             dispose();
         });
         bottom.add(save);
-        bottom.add(close);
         main.add(bottom, BorderLayout.SOUTH);
 
         add(main);
-
-        // 回车/失焦即保存
-        startField.addActionListener(e -> persist());
-        totalField.addActionListener(e -> persist());
-        startField.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override
-            public void focusLost(java.awt.event.FocusEvent e) {
-                persist();
-            }
-        });
-        totalField.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override
-            public void focusLost(java.awt.event.FocusEvent e) {
-                persist();
-            }
-        });
     }
 
     /** 读取表单并保存；非法输入保留上次有效值并在控制台提示 */
@@ -134,7 +116,7 @@ public class ScheduleDialog extends JDialog {
             try {
                 schedule.setTotalLessons(Math.max(0, Integer.parseInt(totalText)));
             } catch (NumberFormatException e) {
-                System.out.println("课时安排：总次数输入非法，已保留上次有效值");
+                LogUtil.logNecessary("课时安排：总次数输入非法，已保留上次有效值");
                 totalField.setText(String.valueOf(schedule.getTotalLessons()));
             }
         }
@@ -145,7 +127,7 @@ public class ScheduleDialog extends JDialog {
             try {
                 schedule.setStartDate(ScheduleManager.toIso(LocalDate.parse(raw, ScheduleManager.ISO)));
             } catch (DateTimeParseException e) {
-                System.out.println("课时安排：开始日期格式非法（应为 yyyy-MM-dd），已保留上次有效值");
+                LogUtil.logNecessary("课时安排：开始日期格式非法（应为 yyyy-MM-dd），已保留上次有效值");
                 startField.setText(schedule.getStartDate() == null ? "" : schedule.getStartDate());
             }
         } else {
@@ -154,7 +136,7 @@ public class ScheduleDialog extends JDialog {
 
         schedule.setRealName(student.getRealName());
         if (ScheduleManager.save(schedule)) {
-            System.out.println("√ 已保存课时安排：" + student.getRealName()
+            LogUtil.logNecessary("√ 已保存课时安排：" + student.getRealName()
                                    + " 开始日期=" + schedule.getStartDate()
                                    + " 总次数=" + schedule.getTotalLessons());
         }

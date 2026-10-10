@@ -1,6 +1,7 @@
 package me.xpyex.software.feedback.packet.in;
 
 import com.google.gson.annotations.SerializedName;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.Data;
 import lombok.NoArgsConstructor;

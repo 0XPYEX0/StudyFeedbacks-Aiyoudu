@@ -24,7 +24,9 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import me.xpyex.software.feedback.data.StudentFeedbackHistory;
 import me.xpyex.software.feedback.data.StudentSchedule;
+import me.xpyex.software.feedback.feedback.FeedbackHistoryManager;
 import me.xpyex.software.feedback.packet.both.StudentInfo;
 import me.xpyex.software.feedback.schedule.ScheduleManager;
 import me.xpyex.software.feedback.tasks.basis.StudentReader;
@@ -33,6 +35,7 @@ import me.xpyex.software.feedback.tasks.feedback.DeepSeekAnalyzer;
 import me.xpyex.software.feedback.tasks.feedback.StudentInfoCollector;
 import me.xpyex.software.feedback.tasks.studyPrepare.PrintStudentStudy;
 import me.xpyex.software.feedback.tasks.studyPrepare.RenewStudentCard;
+import me.xpyex.software.feedback.util.LogUtil;
 import me.xpyex.software.feedback.util.NetworkUtil;
 import me.xpyex.software.feedback.util.TaskExecutor;
 import me.xpyex.software.feedback.util.TimeUtil;
@@ -310,6 +313,7 @@ public class MainWindow extends JFrame {
         header.add(headerLabel("学案设置"));
         header.add(headerLabel("修改信息"));
         header.add(headerLabel("反馈相关"));
+        header.add(headerLabel("上次反馈至今(次)"));
         return header;
     }
 
@@ -357,6 +361,17 @@ public class MainWindow extends JFrame {
             b.setFont(new Font("微软雅黑", Font.PLAIN, 12));
             row.add(b);
         }
+
+        List<StudentFeedbackHistory.Record> recent = FeedbackHistoryManager.recent(studentId, 1);
+        JLabel countsAfterLastFeedback = cellLabel("——");
+        if (recent != null && !recent.isEmpty()) {
+            StudentSchedule schedule = ScheduleManager.load(studentId);
+            if (schedule != null) {
+                int day = ScheduleManager.getStudyDaysAfterDate(schedule, ScheduleManager.parseIso(recent.get(0).getDate()));
+                countsAfterLastFeedback = cellLabel("" + day);
+            }
+        }
+        row.add(countsAfterLastFeedback);
 
         btnSchedule.addActionListener(e -> {
             ScheduleDialog.showDialog(this, student);
@@ -410,10 +425,6 @@ public class MainWindow extends JFrame {
     // ==================== 控制台日志（兼容旧调用点，不再写入界面） ====================
 
     public void log(String message) {
-        System.out.println(message);
-    }
-
-    public void logError(String message) {
-        System.err.println(message);
+        LogUtil.logNecessary(message);
     }
 }

@@ -2,12 +2,14 @@ package me.xpyex.software.feedback.tasks.studyPrepare;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import lombok.experimental.ExtensionMethod;
 import me.xpyex.software.feedback.data.StudyConfig;
@@ -37,7 +39,7 @@ import org.slf4j.LoggerFactory;
 /**
  * 学生批量打印学案任务。
  * <p>
- * 打印篇数以每个学生的「学案设置」为准（config/study/{姓名}_{studentId}.json），
+ * 打印篇数以每个学生的「学案设置」为准（data/study/{姓名}_{studentId}.json），
  * 不再读取全局 config/print.json。单生流程：
  * <ol>
  *     <li>若为按日结算卡且有剩余天数，先退掉剩余天数（沿用）</li>
@@ -58,6 +60,8 @@ public class PrintStudentStudy {
      * GUI 选中的学生列表，为 null 表示处理全部在读学生
      */
     private static List<StudentInfo> selectedStudents = null;
+
+    private static Map<Integer, String> printFailReasons = new ConcurrentHashMap<>();  // 学生ID, 失败原因
 
     /**
      * 启动批量处理流程（处理全部在读学生）
@@ -112,6 +116,7 @@ public class PrintStudentStudy {
     }
 
     private static void processAll(Map<Integer, StudentInfo> studentMap) {
+        printFailReasons.clear();
         int total = studentMap.size();
         int done = 0, noConfig = 0, skipped = 0, failed = 0;
 
@@ -134,7 +139,12 @@ public class PrintStudentStudy {
 
             try {
                 processStudent(student, config);
-                log.info("√ 学生 {} 处理完成", student.getRealName());
+                if (printFailReasons.containsKey(student.getStudentId())) {
+                    log.info("学生 {} 打印学案出现异常: {}", student.getRealName(), printFailReasons.get(student.getStudentId()));
+                    failed++;
+                } else {
+                    log.info("√ 学生 {} 处理完成", student.getRealName());
+                }
             } catch (Exception e) {
                 failed++;
                 log.error("处理学生 {} 时发生异常：", student.getRealName(), e);
@@ -147,6 +157,9 @@ public class PrintStudentStudy {
         LogUtil.line();
         log.info("处理统计：总数 {}，成功 {}，无学案配置 {}，篇数为0 {}，异常 {}",
             total, total - noConfig - skipped - failed, noConfig, skipped, failed);
+        printFailReasons.forEach((id, reason) -> {
+            log.info("学生 " + StudentReader.getStudentById(id).getRealName() + ": " + reason);
+        });
     }
 
     private static void processStudent(StudentInfo student, StudyConfig config) {
@@ -206,6 +219,15 @@ public class PrintStudentStudy {
             StudyType type = StudyContentsUtil.StudyType.getStudyTypeByName(typeName);
             if (type == null) {
                 log.warn("  ! 未知题型：{}，已跳过", typeName);
+                return;
+            }
+
+            int exists = queryPrintUrls(student, type, 10).size();
+            if (exists > 6) {
+                String reason = "题型 " + typeName + " 剩余篇幅 > 6";
+                printFailReasons.put(student.getStudentId(),
+                    printFailReasons.containsKey(student.getStudentId()) ?
+                        printFailReasons.get(student.getStudentId()) + "|" + reason : reason);
                 return;
             }
             AYDResponse singleTypeFinalUrl;
