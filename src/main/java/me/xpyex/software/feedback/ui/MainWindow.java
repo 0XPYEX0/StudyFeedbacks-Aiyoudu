@@ -164,7 +164,7 @@ public class MainWindow extends JFrame {
     private void bindActions() {
         btnGetToken.addActionListener(e -> TaskExecutor.executeTask(() -> {
             log("正在启动浏览器，请在浏览器中完成登录...");
-            TimeUtil.sleep(3000);
+            TimeUtil.sleep(2000);
             TokenGetter.start();
         }, "TokenGetter-Thread"));
 
@@ -365,11 +365,8 @@ public class MainWindow extends JFrame {
         List<StudentFeedbackHistory.Record> recent = FeedbackHistoryManager.recent(studentId, 1);
         JLabel countsAfterLastFeedback = cellLabel("——");
         if (recent != null && !recent.isEmpty()) {
-            StudentSchedule schedule = ScheduleManager.load(studentId);
-            if (schedule != null) {
-                int day = ScheduleManager.getStudyDaysAfterDate(schedule, ScheduleManager.parseIso(recent.get(0).getDate()));
-                countsAfterLastFeedback = cellLabel("" + day);
-            }
+            int day = ScheduleManager.getStudyDaysAfterDate(studentId, ScheduleManager.parseIso(recent.get(0).getDate()), false);
+            countsAfterLastFeedback = cellLabel("" + day);
         }
         row.add(countsAfterLastFeedback);
 

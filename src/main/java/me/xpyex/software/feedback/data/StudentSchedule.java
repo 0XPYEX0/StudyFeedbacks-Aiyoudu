@@ -1,5 +1,7 @@
 package me.xpyex.software.feedback.data;
 
+import java.util.HashMap;
+import java.util.Map;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
@@ -26,4 +28,5 @@ public class StudentSchedule {
     private String startDate;
     /** 总次数（总课时） */
     private int totalLessons = 30;
+    private Map<String, Integer> countsInMonthAfterDate = new HashMap<>();  // 单个月的某一天(从这天之后这个月上了几次), 次数
 }

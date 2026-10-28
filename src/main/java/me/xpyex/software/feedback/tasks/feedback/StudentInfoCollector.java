@@ -325,8 +325,6 @@ public class StudentInfoCollector {
             case "语感掌握度":
             case "语法掌握进度":
             case "语感掌握进度":
-            case "时文阅读":
-            case "时文悦读":
             case "分级视听":
             case "分级试听":
             case "分级阅读":
